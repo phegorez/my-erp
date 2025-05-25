@@ -1,5 +1,5 @@
 services:
-  dev-db:
+  dev-my-erp-db:
     image: postgres
     ports:
       - 5432:5432
