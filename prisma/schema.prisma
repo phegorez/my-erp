@@ -55,7 +55,7 @@ model AuthenLog {
 // --- User Metadata ---
 model MetaData {
   meta_id                  String   @id @default(uuid())
-  user                     User     @relation(fields: [user_id], references: [user_id])
+  user                     User     @relation(fields: [user_id], references: [user_id], onDelete: Cascade) // เชื่อมโยงไปยัง User
   user_id                  String
   start_date               DateTime
   end_date                 DateTime

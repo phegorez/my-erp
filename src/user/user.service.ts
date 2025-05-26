@@ -1,119 +1,185 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
 import { UserDto } from './dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import * as argon from 'argon2'
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
-import { User } from '@prisma/client';
+import { MetaData, User } from '@prisma/client';
+import { ConfigService } from '@nestjs/config';
+import { last } from 'rxjs';
 
 @Injectable()
 export class UserService {
   constructor(
-    private prisma: PrismaService
+    private prisma: PrismaService,
+    private config: ConfigService
   ) { }
 
-  async create(userDto: UserDto) {
+  async create(userDto: UserDto, user_id: string, role: string): Promise<{
+    message: string;
+    res_newUser: { full_name: string; email_address: string };
+    metaData: MetaData;
+  }> {
 
-    const defaultPassword = await argon.hash("P@ssW0rd$1234")
-    // check existing user
+    // input validation
+    if (!user_id || !userDto) {
+      throw new BadRequestException('Missing required parameters');
+    }
 
+    // check if the user is super admin
+    if (role !== 'admin') {
+      throw new ForbiddenException('You are not allowed to create a user');
+    }
+
+    // create a default password
+    const defaultPassword = await argon.hash(this.config.get('DEFAULT_PASSWORD') as string)
+
+    // create a new user
     try {
+      const result = await this.prisma.$transaction(async (tx) => {
+        // สร้าง User
+        const newUser = await this.prisma.user.create({
+          data: {
+            first_name: userDto.first_name,
+            last_name: userDto.last_name,
+            email_address: userDto.email_address,
+            password: defaultPassword,
 
-      const newUser = await this.prisma.user.create({
-        data: {
-          first_name: userDto.first_name,
-          last_name: userDto.last_name,
-          email_address: userDto.email_address,
-          password: defaultPassword,
-
-          Personal: {
-            create: {
-              id_card: userDto.id_card,
-              phone_number: userDto.phone_number,
-              date_of_birth: userDto.date_of_birth,
-              gender: userDto.gender,
-            }
-          },
-          Employee: {
-            create: {
-              department: {
-                connectOrCreate: {
-                  where: {
-                    department_name: userDto.department_name,
-                  },
-                  create: {
-                    department_name: userDto.department_name
-                  },
-                }
-              },
-              job_title: {
-                connectOrCreate: {
-                  where: {
-                    job_title_name: userDto.job_title_name,
-                  },
-                  create: {
-                    job_title_name: userDto.job_title_name
+            Personal: {
+              create: {
+                id_card: userDto.id_card,
+                phone_number: userDto.phone_number,
+                date_of_birth: userDto.date_of_birth,
+                gender: userDto.gender,
+              }
+            },
+            Employee: {
+              create: {
+                department: {
+                  connectOrCreate: {
+                    where: {
+                      department_name: userDto.department_name,
+                    },
+                    create: {
+                      department_name: userDto.department_name
+                    },
+                  }
+                },
+                job_title: {
+                  connectOrCreate: {
+                    where: {
+                      job_title_name: userDto.job_title_name,
+                    },
+                    create: {
+                      job_title_name: userDto.job_title_name
+                    }
                   }
                 }
               }
-            }
-          },
-          UserRole: {
-            create: [
-              {
-                role: {
-                  connect: {
-                    role_name: userDto.email_address === 'systemadmin@local.com' ? 'super_admin' : 'user'
+            },
+            UserRole: {
+              create: [
+                {
+                  role: {
+                    connect: {
+                      role_name: userDto.email_address === 'systemadmin@local.com' ? 'super_admin' : 'user'
+                    }
                   }
                 }
-              }
-            ]
+              ]
+            }
           }
-        }
-      })
+        })
 
-      // create metadata
-      const metaData = await this.createMetaData(newUser)
+        delete (newUser as any).password;
 
-      const { first_name, last_name, email_address } = newUser
+        // สร้าง MetaData
+        const metaData = await tx.metaData.create({
+          data: {
+            user_id: newUser.user_id,
+            start_date: new Date(),
+            end_date: new Date(),
+            created_by_user_id: user_id,
+            last_modified_by_user_id: user_id,
+          }
+        });
 
+        return { newUser, metaData };
+      });
+
+      const { first_name, last_name, email_address } = result.newUser;
       const res_newUser = {
         full_name: `${first_name} ${last_name}`,
         email_address
-      }
+      };
 
-      delete (newUser as any).password
-      return { message: 'user created', res_newUser, metaData }
+      return { message: 'user created', res_newUser, metaData: result.metaData };
+
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError) {
-        if (error.code === 'P2002') {
-          throw new ForbiddenException('Email already exists')
+        if (
+          error.meta &&
+          Array.isArray((error.meta as any).target)
+        ) {
+          const target = (error.meta as any).target[0];
+          switch (target) {
+            // if the error is related to unique constraints
+            case 'email_address': // email_address is unique
+              throw new ForbiddenException('Email already exists');
+            case 'id_card': // id_card is unique
+              throw new ForbiddenException('ID card already exists');
+            case 'phone_number': // phone_number is unique
+              throw new ForbiddenException('Phone number already exists');
+            default:
+              throw new ForbiddenException(`Unique constraint failed on: ${target}`);
+          }
         }
       }
-      throw error
+      console.error('Unexpected error during user creation:', error);
+      throw error;
     }
   }
 
-  async createMetaData(newUser: User) {
-    try {
-      const metaData = await this.prisma.metaData.create({
-        data: {
-          user: { connect: { user_id: newUser.user_id } },
-          start_date: new Date(),
-          end_date: new Date(),
-        }
-      })
-      return metaData
-    } catch (error) {
-      throw error
-    }
-  }
 
   findAll() {
     return `This action returns all user`;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
+  async getProfile(user_id: string) {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { user_id },
+        select: {
+          first_name: true,
+          last_name: true,
+          email_address: true,
+          created_at: true,
+          updated_at: true,
+          Personal: true,
+          Employee: {
+            include: {
+              department: true,
+              job_title: true
+            }
+          },
+          UserRole: {
+            include: {
+              role: true
+            }
+          }
+        }
+      })
+      if (!user) {
+        throw new ForbiddenException('User not found')
+      }
+      return { user }
+    } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          throw new ForbiddenException('User not found')
+        }
+      }
+      throw error
+    }
   }
 
   update(id: number, userDto: UserDto) {
