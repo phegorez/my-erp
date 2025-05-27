@@ -49,7 +49,7 @@ model AuthenLog {
   user                    User     @relation(fields: [user_id], references: [user_id])
   user_id                 String   @unique
   lastLogin_date          DateTime
-  lastPassword_changeDate DateTime
+  lastPassword_changeDate DateTime?
 }
 
 // --- User Metadata ---

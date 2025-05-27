@@ -36,12 +36,35 @@ export class AuthService {
     // compare password with hash
     const passwordMatches = await argon2.verify(user.password, dto.password);
 
-    // // if passwprd is incorrect throw exception
+    // if passwprd is incorrect throw exception
     if (!passwordMatches) throw new ForbiddenException('Credentials incorrect')
 
+    // store in auth log
+    try {
+      await this.prisma.authenLog.upsert({
+        where: {
+          user_id: user.user_id,
+        },
+        update: {
+          lastLogin_date: new Date(),
+        },
+        create: {
+          user_id: user.user_id,
+          lastLogin_date: new Date(),
+        }
+      })
+    } catch (erorr) {
+      throw new Error('Failed to store auth log', erorr);
+    }
+
     // generate token
-    const role = user.userMetaData[0].is_admin ? 'admin' : 'user'
-    const access_token = await this.signToken(user.user_id, user.email_address, role)
+    const isAdmin = user.userMetaData?.[0]?.is_admin || false;
+    const role = isAdmin ? 'admin' : 'user';
+    const access_token = await this.signToken(
+      user.user_id,
+      user.email_address,
+      role
+    );
 
     return { access_token }
 
