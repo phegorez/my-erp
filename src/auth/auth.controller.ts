@@ -1,7 +1,9 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, Res } from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Patch, Post, Req, Res, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { AuthDto } from './dto/auth-dto';
+import { AuthDto, UpdatePasswordDto } from './dto';
 import { Response } from 'express';
+import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import { GetUser } from './common/decorator/get-user.decorators';
 
 @Controller('auth')
 export class AuthController {
@@ -22,5 +24,17 @@ export class AuthController {
     return {
       message: 'Signin Successful'
     }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('update-password')
+  async updatePassword(
+    @Body() updatePasswordDto: UpdatePasswordDto,
+    @GetUser('sub') userId: string,
+  ) {
+    if (!userId) {
+      throw new UnauthorizedException('User not authenticated or user ID not found in token');
+    }
+    return this.authService.updatePassword(userId, updatePasswordDto);
   }
 }

@@ -1,11 +1,10 @@
 import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
-import { UserDto } from './dto';
+import { EditPersonalDto, UserDto } from './dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import * as argon from 'argon2'
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { MetaData, User } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
-import { last } from 'rxjs';
 
 @Injectable()
 export class UserService {
@@ -14,11 +13,7 @@ export class UserService {
     private config: ConfigService
   ) { }
 
-  async create(userDto: UserDto, user_id: string, role: string): Promise<{
-    message: string;
-    res_newUser: { full_name: string; email_address: string };
-    metaData: MetaData;
-  }> {
+  async create(userDto: UserDto, user_id: string, role: string) {
 
     // input validation
     if (!user_id || !userDto) {
@@ -36,7 +31,7 @@ export class UserService {
     // create a new user
     try {
       const result = await this.prisma.$transaction(async (tx) => {
-        // สร้าง User
+
         const newUser = await this.prisma.user.create({
           data: {
             first_name: userDto.first_name,
@@ -80,8 +75,14 @@ export class UserService {
               create: [
                 {
                   role: {
-                    connect: {
-                      role_name: userDto.email_address === 'systemadmin@local.com' ? 'super_admin' : 'user'
+                    connectOrCreate: {
+                      where: {
+                        role_name: 'user'
+                      },
+                      create: {
+                        role_name: 'user',
+                        description: 'Regular User'
+                      }
                     }
                   }
                 }
@@ -139,9 +140,34 @@ export class UserService {
     }
   }
 
+  async getAll(role: string) {
 
-  findAll() {
-    return `This action returns all user`;
+    // role must be admin
+    if (role !== 'admin') {
+      throw new ForbiddenException('Your role are not admin');
+    }
+
+    // get all user from database
+    try {
+      const allUsers = await this.prisma.employee.findMany({
+        select: {
+          user_id: true,
+          user: {
+            select: {
+              first_name: true,
+              last_name: true,
+              email_address: true,
+            }
+          },
+          department: true,
+          job_title: true
+        }
+      })
+
+      return allUsers
+    } catch (error) {
+      throw error;
+    }
   }
 
   async getProfile(user_id: string) {
@@ -179,6 +205,59 @@ export class UserService {
         }
       }
       throw error
+    }
+  }
+
+  async getAllDepartments(role: string) {
+    // role must be admin
+    if (role !== 'admin') {
+      throw new ForbiddenException('Your role are not admin');
+    }
+
+    try {
+      const allDepartments = await this.prisma.department.findMany()
+      return allDepartments
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async editPersonalInfo(user_id: string, editPersonalData: EditPersonalDto,) {
+    // validate data
+    if (!user_id || !editPersonalData) {
+      throw new BadRequestException('Missing required parameters');
+    }
+
+    // find user personal data
+    try {
+      const personalData = await this.prisma.personal.findUnique({
+        where: {
+          user_id: user_id
+        }
+      })
+
+      if (!personalData) {
+        throw new BadRequestException('Not found personal data')
+      }
+
+      // update
+      await this.prisma.personal.update({
+        where: {
+          user_id: user_id
+        },
+        data: {
+          id_card: editPersonalData.id_card,
+          phone_number: editPersonalData.phone_number,
+          date_of_birth: editPersonalData.date_of_birth,
+          gender: editPersonalData.gender
+        }
+      })
+
+      return {
+        message: 'Update Successful'
+      }
+    } catch (error) {
+      throw new error
     }
   }
 
