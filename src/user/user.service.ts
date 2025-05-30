@@ -138,10 +138,10 @@ export class UserService {
     }
   }
 
-  async getAll(role: string) {
+  async getAll(roles: string[]) {
 
     // role must be admin
-    if (role !== 'admin') {
+    if (!roles.includes('super_admin') && !roles.includes('admin')) {
       throw new ForbiddenException('Your role are not admin');
     }
 

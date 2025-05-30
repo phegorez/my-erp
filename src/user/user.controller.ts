@@ -18,8 +18,8 @@ export class UserController {
 
   // get all usesr
   @Get()
-  findAll(@GetUser('role') role: string) {
-    return this.userService.getAll(role)
+  findAll(@GetUser('roles') roles: string[]) {
+    return this.userService.getAll(roles)
   }
 
   // get user by id for admin
