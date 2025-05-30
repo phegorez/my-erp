@@ -24,6 +24,9 @@ export class AuthController {
     return {
       message: 'Signin Successful'
     }
+
+    // for test
+    // return await this.authService.signin(dto)
   }
 
   @UseGuards(JwtAuthGuard)

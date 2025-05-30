@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, HttpCode, HttpStatus, Query } from '@nestjs/common';
 import { UserService } from './user.service';
 import { EditPersonalDto, UserDto } from './dto';
 import { JwtAuthGuard } from 'src/auth/common/guards/jwt-auth.guard';
@@ -12,14 +12,20 @@ export class UserController {
   // add new user
   
   @Post()
-  create(@GetUser('sub') userId: string, @GetUser('role') role: string, @Body() userDto: UserDto) {
-    return this.userService.create(userDto, userId, role);
+  create(@GetUser('sub') userId: string, @GetUser('roles') roles: string[], @Body() userDto: UserDto) {
+    return this.userService.create(userDto, userId, roles);
   }
 
   // get all usesr
   @Get()
   findAll(@GetUser('role') role: string) {
     return this.userService.getAll(role)
+  }
+
+  // get user by id for admin
+  @Get(':id')
+  getUserById(@GetUser('role') role: string, @Param('id') user_id: string) {
+    return this.userService.findOne(role, user_id)
   }
 
   @Get('me')
@@ -42,6 +48,12 @@ export class UserController {
   @Patch(':id')
   update(@Param('id') id: string, @Body() userDto: UserDto) {
     return this.userService.update(+id, userDto);
+  }
+
+  //Edit user by admin
+  @Patch('edit')
+  editUser(@GetUser('role') role: string, userDto) {
+
   }
 
   @Delete(':id')

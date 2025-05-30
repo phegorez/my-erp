@@ -22,9 +22,13 @@ export class AuthService {
         user_id: true,
         email_address: true,
         password: true,
-        userMetaData: {
-          select: {
-            is_admin: true
+        UserRole: {
+          include: {
+            role: {
+              select: {
+                role_name: true
+              }
+            }
           }
         }
       }
@@ -101,13 +105,17 @@ export class AuthService {
       throw new Error('Failed to store auth log', erorr);
     }
 
+    // for test return siged in user
+    // return user
+
     // generate token
-    const isAdmin = user.userMetaData?.[0]?.is_admin || false;
-    const role = isAdmin ? 'admin' : 'user';
+    const rols = user.UserRole.map((role) => {
+      return role.role.role_name
+    });
     const access_token = await this.signToken(
       user.user_id,
       user.email_address,
-      role
+      rols
     );
 
     return { access_token }
@@ -160,17 +168,17 @@ export class AuthService {
     return { message: 'Password updated successfully.' };
   }
 
-  signToken(userId: string, email: string, role: string): Promise<string> {
+  signToken(userId: string, email: string, roles: string[]): Promise<string> {
     // create a payload
     const payload = {
       sub: userId,
       email_address: email,
-      role: role
+      roles: roles
     }
 
     // sign the token
     const token = this.jwt.signAsync(payload, {
-      expiresIn: payload.role === 'user' ? '30m' : '2h',
+      expiresIn: '1h',
       secret: this.config.get<string>('JWT_SECRET'),
     });
     return token;

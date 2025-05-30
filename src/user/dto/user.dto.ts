@@ -60,3 +60,12 @@ export class EditPersonalDto {
     @IsOptional()
     gender: string;
 }
+
+export class EditUser {
+
+    @IsString()
+    user_id: string
+
+    
+    role: string
+}

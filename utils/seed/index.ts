@@ -20,7 +20,6 @@ async function main() {
             update: {},
             create: {
                 role_name: roleName,
-                description: `${roleName} role`
             }
         })
 
@@ -78,7 +77,6 @@ async function main() {
                 user_id: newUser.user_id,
                 start_date: new Date(),
                 end_date: new Date(),
-                is_admin: true
             }
         })
 

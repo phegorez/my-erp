@@ -29,9 +29,9 @@ model User {
   email_address String @unique(map: "User_email_address_key")
 
   // one-to-one
-  authenLog    AuthenLog?
-  Employee     Employee? // receive by user input
-  Personal     Personal? // receive by user input
+  authenLog AuthenLog?
+  Employee  Employee? // receive by user input
+  Personal  Personal? // receive by user input
 
   userMetaData MetaData[]
 
@@ -40,8 +40,10 @@ model User {
 
   UserRole UserRole[] // many-to-many relationship with Role
 
-  createdMetaData  MetaData[] @relation("MetaDataCreatedBy") // เปลี่ยนชื่อ field
-  modifiedMetaData MetaData[] @relation("MetaDataModifiedBy") // เปลี่ยนชื่อ field
+  createdMetaData  MetaData[]        @relation("MetaDataCreatedBy") // เปลี่ยนชื่อ field
+  modifiedMetaData MetaData[]        @relation("MetaDataModifiedBy") // เปลี่ยนชื่อ field
+  Request          Request[]
+  RequestApproval  RequestApproval[]
 }
 
 // --- Authentication Log ---
@@ -61,11 +63,10 @@ model MetaData {
   start_date               DateTime
   end_date                 DateTime
   status                   String   @default("active")
-  is_admin                 Boolean  @default(false)
-  created_by               User?     @relation("MetaDataCreatedBy", fields: [created_by_user_id], references: [user_id]) // เชื่อมโยงไปยัง User
+  created_by               User?    @relation("MetaDataCreatedBy", fields: [created_by_user_id], references: [user_id]) // เชื่อมโยงไปยัง User
   created_by_user_id       String? // foreign key field
   created_date             DateTime @default(now())
-  last_modified_by         User?     @relation("MetaDataModifiedBy", fields: [last_modified_by_user_id], references: [user_id]) // เชื่อมโยงไปยัง User
+  last_modified_by         User?    @relation("MetaDataModifiedBy", fields: [last_modified_by_user_id], references: [user_id]) // เชื่อมโยงไปยัง User
   last_modified_by_user_id String? // foreign key field
   last_modified_date       DateTime @updatedAt
 }
@@ -112,7 +113,6 @@ model JobTitle {
 model Role {
   role_id     String     @id @default(nanoid(7))
   role_name   RoleEnum   @unique @default(user)
-  description String
   UserRole    UserRole[]
 }
 
@@ -125,4 +125,75 @@ model UserRole {
   role_id String
 
   @@unique([user_id, role_id]) // user มีหลาย role ได้
+}
+
+
+// Item and Request model
+model Category {
+  category_id   String @id @default(nanoid())
+  category_name String
+
+  items Item[]
+}
+
+model Item {
+  item_id       String  @id @default(nanoid())
+  item_name     String
+  description   String?
+  category_id   String
+  serial_number String?
+  imei          String?
+  is_available  Boolean @default(true)
+
+  category     Category      @relation(fields: [category_id], references: [category_id])
+  requestItems RequestItem[]
+}
+
+enum RequestStatus {
+  Success
+  Reject
+  Waiting_Approval
+}
+
+model Request {
+  request_id        String        @id @default(nanoid())
+  request_date      DateTime      @default(now())
+  user_id           String
+  start_date        DateTime
+  end_date          DateTime
+  status            RequestStatus @default(Waiting_Approval)
+  parent_request_id String?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  user          User      @relation(fields: [user_id], references: [user_id])
+  parentRequest Request?  @relation("RequestToRequest", fields: [parent_request_id], references: [request_id])
+  childRequests Request[] @relation("RequestToRequest")
+
+  requestItems RequestItem[]
+  approvals    RequestApproval[]
+}
+
+model RequestItem {
+  id         String @id @default(nanoid())
+  request_id String
+  item_id    String
+  quantity   Int
+
+  request Request @relation(fields: [request_id], references: [request_id])
+  item    Item    @relation(fields: [item_id], references: [item_id])
+}
+
+model RequestApproval {
+  approval_id String        @id @default(nanoid())
+  request_id  String
+  approved_by String
+  role        String
+  status      RequestStatus @default(Waiting_Approval)
+  approved_at DateTime?
+  comment     String?
+
+  request  Request @relation(fields: [request_id], references: [request_id])
+  approver User    @relation(fields: [approved_by], references: [user_id])
 }

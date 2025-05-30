@@ -13,7 +13,7 @@ export class UserService {
     private config: ConfigService
   ) { }
 
-  async create(userDto: UserDto, user_id: string, role: string) {
+  async create(userDto: UserDto, user_id: string, roles: string[]) {
 
     // input validation
     if (!user_id || !userDto) {
@@ -21,7 +21,7 @@ export class UserService {
     }
 
     // check if the user is super admin
-    if (role !== 'admin') {
+    if (!roles.includes('super_admin')) {
       throw new ForbiddenException('You are not allowed to create a user');
     }
 
@@ -31,6 +31,14 @@ export class UserService {
     // create a new user
     try {
       const result = await this.prisma.$transaction(async (tx) => {
+
+        const role = await tx.role.upsert({
+          where: { role_name: 'user' },
+          update: {},
+          create: {
+            role_name: 'user',
+          }
+        })
 
         const newUser = await this.prisma.user.create({
           data: {
@@ -74,17 +82,7 @@ export class UserService {
             UserRole: {
               create: [
                 {
-                  role: {
-                    connectOrCreate: {
-                      where: {
-                        role_name: 'user'
-                      },
-                      create: {
-                        role_name: 'user',
-                        description: 'Regular User'
-                      }
-                    }
-                  }
+                  role_id: role.role_id
                 }
               ]
             }
@@ -167,6 +165,37 @@ export class UserService {
       return allUsers
     } catch (error) {
       throw error;
+    }
+  }
+
+  async findOne(role: string, user_id: string) {
+    // role must be admin
+    if (role !== 'admin') {
+      throw new ForbiddenException('Your role are not admin');
+    }
+
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: {
+          user_id
+        },
+        select: {
+          first_name: true,
+          last_name: true,
+          UserRole: {
+            include: {
+              role: {
+                select: {
+                  role_name: true
+                }
+              }
+            }
+          }
+        }
+      })
+      return user
+    } catch (error) {
+      throw error
     }
   }
 
