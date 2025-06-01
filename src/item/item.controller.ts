@@ -1,33 +1,52 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller, Get, Post, Body, Patch, Param, Delete, UseGuards,
+  ForbiddenException
+} from '@nestjs/common';
 import { ItemService } from './item.service';
-import { ItemDto } from './dto';
+import { CreateItemDto, UpdateItemDto } from './dto';
+import { Item } from '@prisma/client';
+import { JwtAuthGuard } from '../auth/common/guards/jwt-auth.guard'; // Added
+import { GetUser } from 'src/auth/common/decorator/get-user.decorators'; // Added - not used if item ops not user-specific
 
-@Controller('item')
+@Controller('items')
 export class ItemController {
-  constructor(private readonly itemService: ItemService) {}
+  constructor(private readonly itemService: ItemService) { }
 
+  @UseGuards(JwtAuthGuard) // Protected
   @Post()
-  create(@Body() createItemDto: ItemDto) {
-    return this.itemService.create(createItemDto);
+  create(@GetUser('roles') roles: string[], @Body() dto: CreateItemDto): Promise<Item> {
+    if (roles.includes('super_admin') || roles.includes('admin')) {
+      return this.itemService.create(dto);
+    }
+    throw new ForbiddenException('You are not allowed to add a item')
   }
 
   @Get()
-  findAll() {
+  findAll(): Promise<Item[]> {
     return this.itemService.findAll();
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.itemService.findOne(+id);
+  findOne(@Param('id') id: string): Promise<Item> {
+    return this.itemService.findOne(id);
   }
 
+  @UseGuards(JwtAuthGuard) // Protected
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: ItemDto) {
-    return this.itemService.update(+id, dto);
+  update(@GetUser('roles') roles: string[], @Param('id') id: string, @Body() dto: UpdateItemDto): Promise<Item> {
+    if (roles.includes('super_admin') || roles.includes('admin')) {
+      return this.itemService.update(id, dto);
+    }
+    throw new ForbiddenException('You are not allowed to update a item')
   }
 
+  @UseGuards(JwtAuthGuard) // Protected
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.itemService.remove(+id);
+  remove(@GetUser('roles') roles: string[], @Param('id') id: string): Promise<Item> {
+    if (roles.includes('super_admin') || roles.includes('admin')) {
+      return this.itemService.remove(id);
+    }
+    throw new ForbiddenException('You are not allowed to delete a item')
+
   }
 }

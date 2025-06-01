@@ -30,15 +30,16 @@ export class UserService {
 
     // create a new user
     try {
-      const result = await this.prisma.$transaction(async (tx) => {
+      // create role
+      const role = await this.prisma.role.upsert({
+        where: { role_name: 'user' },
+        update: {},
+        create: {
+          role_name: 'user',
+        }
+      })
 
-        const role = await tx.role.upsert({
-          where: { role_name: 'user' },
-          update: {},
-          create: {
-            role_name: 'user',
-          }
-        })
+      const result = await this.prisma.$transaction(async (tx) => {
 
         const newUser = await this.prisma.user.create({
           data: {

@@ -1,25 +1,78 @@
-import { Injectable } from '@nestjs/common';
-import { ItemDto } from './dto';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service'; // Adjust path
+import { CreateItemDto, UpdateItemDto } from './dto';
+import { Item } from '@prisma/client';
 
 @Injectable()
 export class ItemService {
-  create(itemDto: ItemDto) {
-    return 'This action adds a new item';
+  constructor(private prisma: PrismaService) { }
+
+  async create(dto: CreateItemDto): Promise<Item> {
+    // Check if category exists
+    const category = await this.prisma.category.findUnique({
+      where: { category_id: dto.category_id },
+    });
+    if (!category) {
+      throw new NotFoundException(`Category with ID "${dto.category_id}" not found.`);
+    }
+
+    return this.prisma.item.create({
+      data: {
+        item_name: dto.item_name,
+        description: dto.description,
+        category_id: dto.category_id,
+        serial_number: dto.serial_number,
+        imei: dto.imei,
+        is_available: dto.is_available === undefined ? true : dto.is_available, // Default to true
+      },
+      include: { category: true }, // Include category details in the response
+    });
   }
 
-  findAll() {
-    return `This action returns all item`;
+  async findAll(): Promise<Item[]> {
+    return this.prisma.item.findMany({
+      include: { category: true },
+    });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} item`;
+  async findOne(item_id: string): Promise<Item> {
+    const item = await this.prisma.item.findUnique({
+      where: { item_id },
+      include: { category: true },
+    });
+    if (!item) {
+      throw new NotFoundException(`Item with ID "${item_id}" not found`);
+    }
+    return item;
   }
 
-  update(id: number, itemDto: ItemDto) {
-    return `This action updates a #${id} item`;
+  async update(item_id: string, dto: UpdateItemDto): Promise<Item> {
+    await this.findOne(item_id); // Ensure item exists
+
+    if (dto.category_id) {
+      const category = await this.prisma.category.findUnique({
+        where: { category_id: dto.category_id },
+      });
+      if (!category) {
+        throw new NotFoundException(`Category with ID "${dto.category_id}" not found.`);
+      }
+    }
+
+    return this.prisma.item.update({
+      where: { item_id },
+      data: {
+        ...dto,
+      },
+      include: { category: true },
+    });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} item`;
+  async remove(item_id: string): Promise<Item> {
+    await this.findOne(item_id); // Ensure item exists
+    // Consider implications: what if item is part of an active request?
+    // For now, direct delete. Add more logic later if needed.
+    return this.prisma.item.delete({
+      where: { item_id },
+    });
   }
 }
