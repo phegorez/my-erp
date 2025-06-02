@@ -59,7 +59,8 @@ async function main() {
                                     job_title_name: seedData.job_title_name,
                                 }
                             }
-                        }
+                        },
+                        grade: seedData.grade
                     }
                 },
                 UserRole: {

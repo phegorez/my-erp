@@ -77,7 +77,8 @@ export class UserService {
                       job_title_name: userDto.job_title_name
                     }
                   }
-                }
+                },
+                grade: userDto.grade
               }
             },
             UserRole: {
@@ -169,9 +170,9 @@ export class UserService {
     }
   }
 
-  async findOne(role: string, user_id: string) {
+  async findOne(roles: string[], user_id: string) {
     // role must be admin
-    if (role !== 'admin') {
+    if (!roles.includes('super_admin') && !roles.includes('admin')) {
       throw new ForbiddenException('Your role are not admin');
     }
 
@@ -195,6 +196,40 @@ export class UserService {
         }
       })
       return user
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async queryByFilter(filter: { query: string, value: string }, roles: string[]) {
+    const { query, value } = filter
+    if (!roles.includes('super_admin') && !roles.includes('admin') && query === 'id') {
+      throw new ForbiddenException('Your role are not admin');
+    }
+    if (query === 'grade') {
+      return await this.queryByGrade(value)
+    }
+  }
+
+  async queryByGrade(value: string) {
+    try {
+      const result = await this.prisma.employee.findMany({
+        where: {
+          grade: {
+            equals: value
+          }
+        },
+        include: {
+          user: {
+            select: {
+              first_name: true,
+              last_name: true,
+              email_address: true,
+            }
+          }
+        }
+      })
+      return result
     } catch (error) {
       throw error
     }
@@ -227,7 +262,7 @@ export class UserService {
       if (!user) {
         throw new ForbiddenException('User not found')
       }
-      return { user }
+      return user
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === 'P2025') {
@@ -238,9 +273,9 @@ export class UserService {
     }
   }
 
-  async getAllDepartments(role: string) {
+  async getAllDepartments(roles: string[]) {
     // role must be admin
-    if (role !== 'admin') {
+    if (!roles.includes('super_admin') && !roles.includes('admin')) {
       throw new ForbiddenException('Your role are not admin');
     }
 

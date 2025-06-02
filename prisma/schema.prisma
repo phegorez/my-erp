@@ -20,6 +20,17 @@ enum RoleEnum {
   user
 }
 
+enum RequestStatus {
+  Success
+  Reject
+  Waiting_Approval
+}
+
+enum ItemType {
+  It_Assets
+  Non_It_Assets
+}
+
 // --- Core User Table ---
 model User {
   user_id       String @id @default(nanoid(7))
@@ -82,6 +93,8 @@ model Employee {
 
   job_title    JobTitle @relation(fields: [job_title_id], references: [job_title_id])
   job_title_id String
+
+  grade String
 }
 
 // --- Personal Details ---
@@ -111,9 +124,9 @@ model JobTitle {
 
 // --- Role ---
 model Role {
-  role_id     String     @id @default(nanoid(7))
-  role_name   RoleEnum   @unique @default(user)
-  UserRole    UserRole[]
+  role_id   String     @id @default(nanoid(7))
+  role_name RoleEnum   @unique @default(user)
+  UserRole  UserRole[]
 }
 
 // -*- Joint Table -*-
@@ -127,7 +140,6 @@ model UserRole {
   @@unique([user_id, role_id]) // user มีหลาย role ได้
 }
 
-
 // Item and Request model
 model Category {
   category_id   String @id @default(nanoid(7))
@@ -137,22 +149,17 @@ model Category {
 }
 
 model Item {
-  item_id       String  @id @default(nanoid(7))
+  item_id       String   @id @default(nanoid(7))
   item_name     String
   description   String?
   category_id   String
   serial_number String?
   imei          String?
-  is_available  Boolean @default(true)
+  item_type     ItemType
+  is_available  Boolean  @default(true)
 
   category     Category      @relation(fields: [category_id], references: [category_id])
   requestItems RequestItem[]
-}
-
-enum RequestStatus {
-  Success
-  Reject
-  Waiting_Approval
 }
 
 model Request {

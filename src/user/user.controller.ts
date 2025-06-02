@@ -22,11 +22,16 @@ export class UserController {
     return this.userService.getAll(roles)
   }
 
-  // get user by id for admin
-  @Get(':id')
-  getUserById(@GetUser('role') role: string, @Param('id') user_id: string) {
-    return this.userService.findOne(role, user_id)
+  @Get('filter')
+  filterUsers(@Query() filter: { query: string; value: string }, @GetUser('roles') roles: string[]) {
+    return this.userService.queryByFilter(filter, roles);
   }
+
+  // get user by id for admin
+  // @Get(':id')
+  // getUserById(@GetUser('roles') roles: string[], @Param('id') user_id: string) {
+  //   return this.userService.findOne(roles, user_id)
+  // }
 
   @Get('me')
   findOne(@GetUser('sub') userId: string) {
@@ -35,8 +40,8 @@ export class UserController {
   }
 
   @Get('departments')
-  getAllDepartment(@GetUser('role') role: string) {
-    return this.userService.getAllDepartments(role)
+  getAllDepartment(@GetUser('roles') roles: string[]) {
+    return this.userService.getAllDepartments(roles)
   }
 
   // @HttpCode(HttpStatus.ACCEPTED)
@@ -52,7 +57,7 @@ export class UserController {
 
   //Edit user by admin
   @Patch('edit')
-  editUser(@GetUser('role') role: string, userDto) {
+  editUser(@GetUser('roles') roles: string[], userDto: UserDto) {
 
   }
 

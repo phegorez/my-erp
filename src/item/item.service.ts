@@ -23,6 +23,7 @@ export class ItemService {
         category_id: dto.category_id,
         serial_number: dto.serial_number,
         imei: dto.imei,
+        item_type: dto.item_type,
         is_available: dto.is_available === undefined ? true : dto.is_available, // Default to true
       },
       include: { category: true }, // Include category details in the response

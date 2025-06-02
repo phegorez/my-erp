@@ -1,3 +1,5 @@
+import { User } from "@prisma/client";
+
 export const seedData = {
     first_name: "system",
     last_name: "admin",
@@ -9,5 +11,6 @@ export const seedData = {
     department_name: "Information System",
     department_description: "Information System",
     job_title_name: "System Admin",
-    job_description: "job_description"
+    job_description: "job_description",
+    grade: '7'
 }

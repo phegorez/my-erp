@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsOptional, IsBoolean, MaxLength, IsUUID } from 'class-validator';
+import { IsNotEmpty, IsString, IsOptional, IsBoolean, MaxLength, IsUUID, IsEnum } from 'class-validator';
 
 export class CreateItemDto {
     @IsNotEmpty()
@@ -25,6 +25,9 @@ export class CreateItemDto {
     @IsString()
     @MaxLength(100)
     imei?: string;
+
+    @IsEnum(['It_Assets', 'Non_It_Assets'], { message: 'item_type must be either It_Assets or Non_It_Assets' })
+    item_type: 'It_Assets' | 'Non_It_Assets'
 
     @IsOptional()
     @IsBoolean()

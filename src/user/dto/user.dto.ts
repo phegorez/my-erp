@@ -38,6 +38,9 @@ export class UserDto {
     // use with model JobTitle
     @IsString()
     job_title_name: string
+
+    @IsString()
+    grade: string
 }
 
 export class EditPersonalDto {
