@@ -17,18 +17,28 @@ datasource db {
 enum RoleEnum {
   super_admin
   admin
+  pic
   user
 }
 
 enum RequestStatus {
   Success
   Reject
-  Waiting_Approval
+  Revise
+  Canceled
+  Approved
+  Waiting_Manager_Approval
+  Waiting_PIC_Approval
 }
 
 enum ItemType {
   It_Assets
   Non_It_Assets
+}
+
+enum ApproverRole {
+  Manager
+  PIC
 }
 
 // --- Core User Table ---
@@ -166,9 +176,10 @@ model Request {
   request_id        String        @id @default(nanoid(7))
   request_date      DateTime      @default(now())
   user_id           String
+  user_manager_id   String
   start_date        DateTime
   end_date          DateTime
-  status            RequestStatus @default(Waiting_Approval)
+  status            RequestStatus @default(Waiting_Manager_Approval)
   comment           String?
   parent_request_id String?
 
@@ -196,12 +207,13 @@ model RequestItem {
 model RequestApproval {
   approval_id String        @id @default(nanoid(7))
   request_id  String
-  approved_by String
-  role        String
-  status      RequestStatus @default(Waiting_Approval)
+  approver_id String
+  role        ApproverRole
+  status      RequestStatus
   approved_at DateTime?
   comment     String?
+  created_at  DateTime      @default(now())
 
-  request  Request @relation(fields: [request_id], references: [request_id], onDelete: Cascade)
-  approver User    @relation(fields: [approved_by], references: [user_id])
+  request     Request       @relation(fields: [request_id], references: [request_id], onDelete: Cascade)
+  approver    User          @relation(fields: [approver_id], references: [user_id])
 }

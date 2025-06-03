@@ -1,4 +1,4 @@
-import { IsDateString, IsEmail, IsEmpty, IsNotEmpty, IsOptional, IsString, Length } from 'class-validator'
+import { IsDateString, IsEmail, IsEmpty, IsEnum, IsNotEmpty, IsOptional, IsString, Length } from 'class-validator'
 
 export class UserDto {
 
@@ -43,6 +43,21 @@ export class UserDto {
     grade: string
 }
 
+export class UpdateUserDto {
+
+    @IsString()
+    @IsOptional()
+    first_name: string;
+
+    @IsString()
+    @IsOptional()
+    last_name: string;
+
+    @IsOptional()
+    @IsEnum(['super_admin', 'admin', 'pic', 'user'])
+    role_name: 'super_admin' | 'admin' | 'pic' | 'user';
+}
+
 export class EditPersonalDto {
 
     @IsString()
@@ -62,13 +77,4 @@ export class EditPersonalDto {
     @IsString()
     @IsOptional()
     gender: string;
-}
-
-export class EditUser {
-
-    @IsString()
-    user_id: string
-
-    
-    role: string
 }

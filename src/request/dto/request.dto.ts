@@ -25,6 +25,10 @@ export class CreateRequestDto {
     @Type(() => RequestedItemDto)
     requested_items: RequestedItemDto[];
 
+    @IsNotEmpty()
+    @IsString()
+    user_manager_id: string; // The manager who will approve the request
+
     @IsOptional()
     @IsString()
     @MaxLength(500)

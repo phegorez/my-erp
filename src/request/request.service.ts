@@ -8,7 +8,7 @@ export class RequestService {
   constructor(private prisma: PrismaService) { }
 
   async createRequest(dto: CreateRequestDto, user_id: string): Promise<Request> {
-    const { requested_items, comment, start_date, end_date } = dto;
+    const { requested_items, user_manager_id, comment, start_date, end_date } = dto;
 
     // Validate user exists
     const user = await this.prisma.user.findUnique({ where: { user_id } });
@@ -41,7 +41,8 @@ export class RequestService {
           user_id,
           start_date: new Date(start_date),
           end_date: new Date(end_date),
-          status: RequestStatus.Waiting_Approval, // Default status
+          status: RequestStatus.Waiting_Manager_Approval, // Default status
+          user_manager_id,
           requestItems: {
             create: requested_items.map(item => ({
               item_id: item.item_id,
@@ -125,77 +126,77 @@ export class RequestService {
     return request;
   }
 
-  async processRequestApproval(
-    requestId: string,
-    dto: ProcessApprovalDto,
-    approvingUserId: string,
-    approverRole: string, // This role might be fetched based on approvingUserId's roles
-  ): Promise<Request> {
-    const { status, comment } = dto;
+  // async processRequestApproval(
+  //   requestId: string,
+  //   dto: ProcessApprovalDto,
+  //   approvingUserId: string,
+  //   approverRole: string, // This role might be fetched based on approvingUserId's roles
+  // ): Promise<Request> {
+  //   const { status, comment } = dto;
 
-    if (status !== RequestStatus.Success && status !== RequestStatus.Reject) {
-      throw new BadRequestException('Invalid status for approval processing. Must be Success or Reject.');
-    }
+  //   if (status !== RequestStatus.Success && status !== RequestStatus.Reject) {
+  //     throw new BadRequestException('Invalid status for approval processing. Must be Success or Reject.');
+  //   }
 
-    return this.prisma.$transaction(async (tx) => {
-      const request = await tx.request.findUnique({
-        where: { request_id: requestId },
-        include: { requestItems: true, user: true },
-      });
+  //   return this.prisma.$transaction(async (tx) => {
+  //     const request = await tx.request.findUnique({
+  //       where: { request_id: requestId },
+  //       include: { requestItems: true, user: true },
+  //     });
 
-      if (!request) {
-        throw new NotFoundException(`Request with ID "${requestId}" not found.`);
-      }
+  //     if (!request) {
+  //       throw new NotFoundException(`Request with ID "${requestId}" not found.`);
+  //     }
 
-      if (request.status !== RequestStatus.Waiting_Approval) {
-        throw new BadRequestException(`Request can no longer be approved or rejected. Current status: ${request.status}`);
-      }
+  //     if (request.status !== RequestStatus.Waiting_Approval) {
+  //       throw new BadRequestException(`Request can no longer be approved or rejected. Current status: ${request.status}`);
+  //     }
 
-      // Validate approver exists
-      const approver = await tx.user.findUnique({ where: { user_id: approvingUserId } });
-      if (!approver) {
-        throw new NotFoundException(`Approving user with ID "${approvingUserId}" not found.`);
-      }
+  //     // Validate approver exists
+  //     const approver = await tx.user.findUnique({ where: { user_id: approvingUserId } });
+  //     if (!approver) {
+  //       throw new NotFoundException(`Approving user with ID "${approvingUserId}" not found.`);
+  //     }
 
-      // Update the request status
-      const updatedRequest = await tx.request.update({
-        where: { request_id: requestId },
-        data: {
-          status: status,
-        },
-        include: { requestItems: { include: { item: true } }, user: true },
-      });
+  //     // Update the request status
+  //     const updatedRequest = await tx.request.update({
+  //       where: { request_id: requestId },
+  //       data: {
+  //         status: status,
+  //       },
+  //       include: { requestItems: { include: { item: true } }, user: true },
+  //     });
 
-      // Create RequestApproval record
-      await tx.requestApproval.create({
-        data: {
-          request_id: requestId,
-          approved_by: approvingUserId,
-          role: approverRole, // This needs to be determined (e.g., based on user's role)
-          status: status,
-          comment: comment,
-          approved_at: new Date(),
-        },
-      });
+  //     // Create RequestApproval record
+  //     await tx.requestApproval.create({
+  //       data: {
+  //         request_id: requestId,
+  //         approved_by: approvingUserId,
+  //         role: approverRole, // This needs to be determined (e.g., based on user's role)
+  //         status: status,
+  //         comment: comment,
+  //         approved_at: new Date(),
+  //       },
+  //     });
 
-      // If approved, mark items as unavailable
-      if (status === RequestStatus.Success) {
-        const itemIdsToUpdate = request.requestItems.map(ri => ri.item_id);
-        await tx.item.updateMany({
-          where: {
-            item_id: { in: itemIdsToUpdate },
-            // Sanity check: ensure items are still available before marking them unavailable
-            // is_available: true 
-          },
-          data: {
-            is_available: false,
-          },
-        });
-        // Add a check here: if updateMany affected 0 items unexpectedly, something is wrong.
-      }
-      return updatedRequest;
-    });
-  }
+  //     // If approved, mark items as unavailable
+  //     if (status === RequestStatus.Success) {
+  //       const itemIdsToUpdate = request.requestItems.map(ri => ri.item_id);
+  //       await tx.item.updateMany({
+  //         where: {
+  //           item_id: { in: itemIdsToUpdate },
+  //           // Sanity check: ensure items are still available before marking them unavailable
+  //           // is_available: true 
+  //         },
+  //         data: {
+  //           is_available: false,
+  //         },
+  //       });
+  //       // Add a check here: if updateMany affected 0 items unexpectedly, something is wrong.
+  //     }
+  //     return updatedRequest;
+  //   });
+  // }
 
   // --- Add a method for returning items ---
   async returnItems(requestId: string, actingUserId: string): Promise<Request | null> {
@@ -245,39 +246,39 @@ export class RequestService {
     });
   }
 
-  async updateRequestDetails( // Renamed for clarity from generic updateRequestStatus
-    requestId: string,
-    dto: UpdateRequestDto, // This DTO should NOT contain status changes to Success/Reject
-    requestingUserId: string,
-  ): Promise<Request> {
-    const request = await this.prisma.request.findUnique({
-      where: { request_id: requestId },
-    });
+  // async updateRequestDetails( // Renamed for clarity from generic updateRequestStatus
+  //   requestId: string,
+  //   dto: UpdateRequestDto, // This DTO should NOT contain status changes to Success/Reject
+  //   requestingUserId: string,
+  // ): Promise<Request> {
+  //   const request = await this.prisma.request.findUnique({
+  //     where: { request_id: requestId },
+  //   });
 
-    if (!request) {
-      throw new NotFoundException(`Request with ID "${requestId}" not found.`);
-    }
+  //   if (!request) {
+  //     throw new NotFoundException(`Request with ID "${requestId}" not found.`);
+  //   }
 
-    if (request.user_id !== requestingUserId) {
-      throw new ForbiddenException('You can only update your own requests.');
-    }
+  //   if (request.user_id !== requestingUserId) {
+  //     throw new ForbiddenException('You can only update your own requests.');
+  //   }
 
-    if (request.status !== RequestStatus.Waiting_Approval) {
-      throw new BadRequestException(`Only requests with status 'Waiting_Approval' can be modified by the user.`);
-    }
+  //   if (request.status !== RequestStatus.Waiting_Approval) {
+  //     throw new BadRequestException(`Only requests with status 'Waiting_Approval' can be modified by the user.`);
+  //   }
 
-    if (dto.status && (dto.status === RequestStatus.Success || dto.status === RequestStatus.Reject)) {
-      throw new BadRequestException(`User cannot directly set status to Success or Reject. Use the approval process.`);
-    }
+  //   if (dto.status && (dto.status === RequestStatus.Success || dto.status === RequestStatus.Reject)) {
+  //     throw new BadRequestException(`User cannot directly set status to Success or Reject. Use the approval process.`);
+  //   }
 
-    return this.prisma.request.update({
-      where: { request_id: requestId },
-      data: {
-        // Only allow certain fields to be updated by user, e.g., end_date
-        end_date: dto.end_date ? new Date(dto.end_date) : request.end_date,
-        // Do not allow status changes here other than perhaps 'Cancelled_by_User' if such enum existed
-      },
-      include: { requestItems: { include: { item: true } }, user: true },
-    });
-  }
+  //   return this.prisma.request.update({
+  //     where: { request_id: requestId },
+  //     data: {
+  //       // Only allow certain fields to be updated by user, e.g., end_date
+  //       end_date: dto.end_date ? new Date(dto.end_date) : request.end_date,
+  //       // Do not allow status changes here other than perhaps 'Cancelled_by_User' if such enum existed
+  //     },
+  //     include: { requestItems: { include: { item: true } }, user: true },
+  //   });
+  // }
 }

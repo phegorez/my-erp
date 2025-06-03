@@ -1,5 +1,5 @@
 import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
-import { EditPersonalDto, UserDto } from './dto';
+import { EditPersonalDto, UpdateUserDto, UserDto } from './dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import * as argon from 'argon2'
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
@@ -13,16 +13,11 @@ export class UserService {
     private config: ConfigService
   ) { }
 
-  async create(userDto: UserDto, user_id: string, roles: string[]) {
+  async create(userDto: UserDto, user_id: string) {
 
     // input validation
     if (!user_id || !userDto) {
       throw new BadRequestException('Missing required parameters');
-    }
-
-    // check if the user is super admin
-    if (!roles.includes('super_admin')) {
-      throw new ForbiddenException('You are not allowed to create a user');
     }
 
     // create a default password
@@ -140,12 +135,7 @@ export class UserService {
     }
   }
 
-  async getAll(roles: string[]) {
-
-    // role must be admin
-    if (!roles.includes('super_admin') && !roles.includes('admin')) {
-      throw new ForbiddenException('Your role are not admin');
-    }
+  async getAll() {
 
     // get all user from database
     try {
@@ -184,11 +174,13 @@ export class UserService {
         select: {
           first_name: true,
           last_name: true,
+          email_address: true,
           UserRole: {
-            include: {
+            select: {
               role: {
                 select: {
-                  role_name: true
+                  role_id: true,
+                  role_name: true,
                 }
               }
             }
@@ -201,35 +193,46 @@ export class UserService {
     }
   }
 
-  async queryByFilter(filter: { query: string, value: string }, roles: string[]) {
+  async queryByFilter(filter: { query: string, value: string }) {
     const { query, value } = filter
-    if (!roles.includes('super_admin') && !roles.includes('admin') && query === 'id') {
-      throw new ForbiddenException('Your role are not admin');
+    const allowedFielsds = ['department_id', 'job_title_id', 'grade'];
+    if (!allowedFielsds.includes(query)) {
+      throw new BadRequestException(`Invalid query parameter: ${query}. Allowed fields are: ${allowedFielsds.join(', ')}`);
     }
-    if (query === 'grade') {
-      return await this.queryByGrade(value)
-    }
-  }
-
-  async queryByGrade(value: string) {
     try {
       const result = await this.prisma.employee.findMany({
         where: {
-          grade: {
+          [query]: {
             equals: value
           }
         },
-        include: {
+        select: {
+          user_id: true,
           user: {
             select: {
               first_name: true,
               last_name: true,
               email_address: true,
             }
-          }
+          },
+          department: {
+            select: {
+              department_name: true,
+            }
+          },
+          job_title: {
+            select: {
+              job_title_name: true,
+            }
+          },
+          grade: true,
         }
       })
-      return result
+      if (result.length > 0) {
+        return result
+      } else {
+        throw new BadRequestException(`No users found with ${query} = ${value}`);
+      }
     } catch (error) {
       throw error
     }
@@ -326,11 +329,105 @@ export class UserService {
     }
   }
 
-  update(id: number, userDto: UserDto) {
-    return `This action updates a #${id} user`;
+  async update(user_id: string, userDto: UpdateUserDto) {
+    // validate data
+    if (!user_id || !userDto) {
+      throw new BadRequestException('Missing required parameters');
+    }
+
+    // cannot update role to super_admin
+    if (userDto.role_name === 'super_admin') {
+      throw new ForbiddenException('Cannot update role to super_admin');
+    }
+
+    try {
+      // update user
+      if (userDto.role_name) {
+        await this.prisma.$transaction(async (tx) => {
+
+          // check if role exists, if not create it
+          const existingRole = await tx.role.findUnique({
+            where: {
+              role_name: userDto.role_name
+            }
+          })
+
+          if (!existingRole) {
+            // create new role
+            const newRole = await tx.role.create({
+              data: {
+                role_name: userDto.role_name
+              }
+            })
+
+            // assign the new role to the user
+            await tx.userRole.create({
+              data: {
+                user_id: user_id,
+                role_id: newRole.role_id
+              }
+            })
+          }
+          else {
+            // if role exists, update the user role
+            await tx.userRole.upsert({
+              where: {
+                user_id_role_id: {
+                  user_id: user_id,
+                  role_id: existingRole.role_id
+                }
+              },
+              update: {},
+              create: {
+                user_id: user_id,
+                role_id: existingRole.role_id
+              }
+            })
+          }
+        })
+      }
+      await this.prisma.user.update({
+        where: {
+          user_id: user_id
+        },
+        data: {
+          first_name: userDto.first_name,
+          last_name: userDto.last_name,
+          // update role if provided
+        }
+      })
+
+      return {
+        message: 'User updated successfully',
+      }
+    } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          throw new BadRequestException('User not found');
+        }
+      }
+      throw error;
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  async remove(user_id: string) {
+    if (!user_id) {
+      throw new BadRequestException('Missing user_id parameter');
+    }
+    try {
+      await this.prisma.user.delete({
+        where: {
+          user_id: user_id
+        }
+      })
+      return { message: 'User deleted successfully' };
+    } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          throw new BadRequestException('User not found');
+        }
+      }
+      throw error;
+    }
   }
 }
