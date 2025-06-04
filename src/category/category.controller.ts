@@ -41,6 +41,15 @@ export class CategoryController {
     throw new ForbiddenException('Permission denied: Your are not PIC')
   }
 
+  @Patch('assign-pic/:id')
+  async assignPic(@GetUser() user: { sub: string, roles: string[] }, @Param('id') id: string, @Body() dto: { assigned_pic: string }): Promise<Category> {
+    const { sub, roles } = user
+    if (roles.includes('super_admin') || roles.includes('admin')) {
+      return this.categoryService.assignPic(id, sub, dto);
+    }
+    throw new ForbiddenException('Permission denied')
+  }
+
   @Delete(':id')
   async remove(@GetUser('roles') roles: string[], @Param('id') id: string): Promise<string> {
     if (roles.includes('super_admin') || roles.includes('admin')) {

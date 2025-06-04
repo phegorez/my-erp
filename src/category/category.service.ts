@@ -149,8 +149,64 @@ export class CategoryService {
   }
 
   // pic
+  async assignPic(category_id: string, admin_id: string, dto: { assigned_pic: string }): Promise<Category> {
+    const { assigned_pic } = dto;
+
+    // Check if the category exists
+    const category = await this.prisma.category.findUnique({
+      where: { category_id },
+    });
+
+    if (!category) {
+      throw new NotFoundException(`Category with ID "${category_id}" not found`);
+    }
+
+    // Check if the assigned pic exists
+    const existingPic = await this.prisma.user.findUnique({
+      where: { user_id: assigned_pic },
+    });
+
+    if (!existingPic) {
+      throw new NotAcceptableException(`Assigned pic with user_id : ${assigned_pic} does not exist`);
+    }
+
+    // Check if the user is already assigned as a pic
+    let pic = await this.prisma.pic.findUnique({
+      where: { user_id: assigned_pic },
+    });
+
+    if (!pic) {
+      // Create a new pic if it doesn't exist
+      pic = await this.prisma.pic.create({
+        data: {
+          user_id: assigned_pic,
+          assigned_by_user_id: admin_id, // Assuming the pic is assigned by the current pic
+        },
+      });
+    }
+
+    // Update the category to connect to the new pic
+    return this.prisma.category.update({
+      where: { category_id },
+      data: {
+        pic: {
+          connect: { user_id: pic.user_id },
+        },
+      },
+    });
+  }
+
   async findAllPics(): Promise<Pic[]> {
-    return this.prisma.pic.findMany();
+    return this.prisma.pic.findMany({
+      include: {
+        categories: {
+          select: {
+            category_id: true,
+            category_name: true,
+          }
+        }
+      }
+    });
   }
 
   async removePic(pic_id: string): Promise<string> {
