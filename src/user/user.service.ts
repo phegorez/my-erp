@@ -40,6 +40,7 @@ export class UserService {
           data: {
             first_name: userDto.first_name,
             last_name: userDto.last_name,
+            fullname: `${userDto.first_name} ${userDto.last_name}`,
             email_address: userDto.email_address,
             password: defaultPassword,
 
@@ -88,7 +89,7 @@ export class UserService {
 
         delete (newUser as any).password;
 
-        // สร้าง MetaData
+        // create MetaData
         const metaData = await tx.metaData.create({
           data: {
             user_id: newUser.user_id,
@@ -160,10 +161,11 @@ export class UserService {
     }
   }
 
-  async findOne(roles: string[], user_id: string) {
-    // role must be admin
-    if (!roles.includes('super_admin') && !roles.includes('admin')) {
-      throw new ForbiddenException('Your role are not admin');
+  async findOne(user_id: string) {
+
+    // validate user_id
+    if (!user_id) {
+      throw new BadRequestException('Missing user_id parameter');
     }
 
     try {
@@ -189,16 +191,31 @@ export class UserService {
       })
       return user
     } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          throw new ForbiddenException('User not found')
+        }
+      }
       throw error
     }
   }
 
   async queryByFilter(filter: { query: string, value: string }) {
+
+    // validate filter
+    if (!filter || !filter.query || !filter.value) {
+      throw new BadRequestException('Missing required filter parameters');
+    }
+
     const { query, value } = filter
     const allowedFielsds = ['department_id', 'job_title_id', 'grade'];
+
+    // check if query is allowed
     if (!allowedFielsds.includes(query)) {
       throw new BadRequestException(`Invalid query parameter: ${query}. Allowed fields are: ${allowedFielsds.join(', ')}`);
     }
+
+    // get users by filter
     try {
       const result = await this.prisma.employee.findMany({
         where: {
@@ -238,7 +255,43 @@ export class UserService {
     }
   }
 
+  // search users by query
+  async searchUsers(query: string) {
+    // validate query
+    if (!query) {
+      throw new BadRequestException('Query parameter is required');
+    }
+
+    try {
+      const users = await this.prisma.user.findMany({
+        where: {
+          OR: [
+            { first_name: { contains: query, mode: 'insensitive' } },
+            { last_name: { contains: query, mode: 'insensitive' } },
+            { email_address: { contains: query, mode: 'insensitive' } }
+          ]
+        },
+        select: {
+          user_id: true,
+          first_name: true,
+          last_name: true,
+          email_address: true,
+        }
+      })
+      return users
+    } catch (error) {
+      throw error
+    }
+  }
+
+  // for owner user
   async getProfile(user_id: string) {
+
+    // validate user_id
+    if (!user_id) {
+      throw new BadRequestException('Missing user_id parameter');
+    }
+
     try {
       const user = await this.prisma.user.findUnique({
         where: { user_id },
@@ -276,12 +329,7 @@ export class UserService {
     }
   }
 
-  async getAllDepartments(roles: string[]) {
-    // role must be admin
-    if (!roles.includes('super_admin') && !roles.includes('admin')) {
-      throw new ForbiddenException('Your role are not admin');
-    }
-
+  async getAllDepartments() {
     try {
       const allDepartments = await this.prisma.department.findMany()
       return allDepartments
@@ -290,6 +338,7 @@ export class UserService {
     }
   }
 
+  // owner user_id can edit personal info
   async editPersonalInfo(user_id: string, editPersonalData: EditPersonalDto,) {
     // validate data
     if (!user_id || !editPersonalData) {
@@ -325,7 +374,12 @@ export class UserService {
         message: 'Update Successful'
       }
     } catch (error) {
-      throw new error
+      if (error instanceof PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          throw new ForbiddenException('User not found')
+        }
+      }
+      throw error
     }
   }
 
@@ -335,57 +389,9 @@ export class UserService {
       throw new BadRequestException('Missing required parameters');
     }
 
-    // cannot update role to super_admin
-    if (userDto.role_name === 'super_admin') {
-      throw new ForbiddenException('Cannot update role to super_admin');
-    }
-
     try {
-      // update user
-      if (userDto.role_name) {
-        await this.prisma.$transaction(async (tx) => {
 
-          // check if role exists, if not create it
-          const existingRole = await tx.role.findUnique({
-            where: {
-              role_name: userDto.role_name
-            }
-          })
-
-          if (!existingRole) {
-            // create new role
-            const newRole = await tx.role.create({
-              data: {
-                role_name: userDto.role_name
-              }
-            })
-
-            // assign the new role to the user
-            await tx.userRole.create({
-              data: {
-                user_id: user_id,
-                role_id: newRole.role_id
-              }
-            })
-          }
-          else {
-            // if role exists, update the user role
-            await tx.userRole.upsert({
-              where: {
-                user_id_role_id: {
-                  user_id: user_id,
-                  role_id: existingRole.role_id
-                }
-              },
-              update: {},
-              create: {
-                user_id: user_id,
-                role_id: existingRole.role_id
-              }
-            })
-          }
-        })
-      }
+      // update user information
       await this.prisma.user.update({
         where: {
           user_id: user_id
@@ -393,7 +399,16 @@ export class UserService {
         data: {
           first_name: userDto.first_name,
           last_name: userDto.last_name,
-          // update role if provided
+          fullname: `${userDto.first_name} ${userDto.last_name}`,
+          UserRole: {
+            create: {
+              role: {
+                connect : {
+                  role_name: userDto.role_name
+                }
+              }
+            }
+          }
         }
       })
 

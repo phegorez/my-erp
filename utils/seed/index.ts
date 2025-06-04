@@ -15,18 +15,21 @@ async function main() {
     const result = await prisma.$transaction(async (tx) => {
         const roleName = seedData.email_address === defaultAdminEmail ? 'super_admin' : 'user'
 
-        const role = await tx.role.upsert({
-            where: { role_name: roleName },
-            update: {},
-            create: {
-                role_name: roleName,
-            }
+        // create roles
+        await tx.role.createMany({
+            data: [
+                { role_name: 'super_admin' },
+                { role_name: 'admin' },
+                { role_name: 'pic' },
+                { role_name: 'user' }
+            ]
         })
 
         const newUser = await tx.user.create({
             data: {
                 first_name: seedData.first_name,
                 last_name: seedData.last_name,
+                fullname: `${seedData.first_name} ${seedData.last_name}`,
                 email_address: seedData.email_address,
                 password: defaultPassword,
 
@@ -64,11 +67,13 @@ async function main() {
                     }
                 },
                 UserRole: {
-                    create: [
-                        {
-                            role_id: role.role_id
+                    create: {
+                        role: {
+                            connect: {
+                                role_name: roleName,
+                            }
                         }
-                    ]
+                    }
                 }
             }
         })

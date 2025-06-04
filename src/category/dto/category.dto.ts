@@ -5,6 +5,10 @@ export class CreateCategoryDto {
     @IsString()
     @MaxLength(255)
     category_name: string;
+
+    @IsNotEmpty()
+    @IsString()
+    assigned_pic: string;
 }
 
 export class UpdateCategoryDto {

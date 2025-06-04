@@ -33,10 +33,19 @@ export class UserController {
     return this.userService.queryByFilter(filter);
   }
 
+
+  @Get('search')
+  searchUsers(@Query('query') query: string) {
+    if (query) {
+      return this.userService.searchUsers(query);
+    }
+    throw new ForbiddenException('Query parameter is required');
+  }
+
   @Get(':id')
   getUserById(@GetUser('roles') roles: string[], @Param('id') user_id: string) {
     if (roles.includes('super_admin') || roles.includes('admin')) {
-      return this.userService.findOne(roles, user_id);
+      return this.userService.findOne(user_id);
     }
     throw new ForbiddenException('Permission denied');
   }
@@ -79,7 +88,7 @@ export class MyProfileController {
 export class DepartmentController {
   constructor(private readonly userService: UserService) { }
   @Get()
-  getAllDepartment(@GetUser('roles') roles: string[]) {
-    return this.userService.getAllDepartments(roles)
+  getAllDepartment() {
+    return this.userService.getAllDepartments()
   }
 }

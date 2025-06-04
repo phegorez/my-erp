@@ -10,7 +10,6 @@
     "db:dev:up": "docker compose up dev-my-erp-db -d",
     "seed": "ts-node utils/seed/index.ts",
     "db:dev:restart": "bun db:dev:rm && bun db:dev:up && timeout 1 && bun prisma:dev:deploy && bun seed",
-
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
@@ -33,7 +32,7 @@
     "@nestjs/mapped-types": "*",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
-    "@prisma/client": "^6.8.2",
+    "@prisma/client": "^6.9.0",
     "argon2": "^0.43.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
@@ -41,7 +40,7 @@
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
-    "prisma": "^6.8.2",
+    "prisma": "^6.9.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"
   },

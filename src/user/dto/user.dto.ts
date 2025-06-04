@@ -54,8 +54,8 @@ export class UpdateUserDto {
     last_name: string;
 
     @IsOptional()
-    @IsEnum(['super_admin', 'admin', 'pic', 'user'])
-    role_name: 'super_admin' | 'admin' | 'pic' | 'user';
+    @IsEnum(['admin', 'user'])
+    role_name: 'admin' | 'user';
 }
 
 export class EditPersonalDto {
