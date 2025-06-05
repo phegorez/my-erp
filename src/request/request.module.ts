@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 import { RequestService } from './request.service';
-import { RequestController } from './request.controller';
+import { RequestApprovalController, RequestController } from './request.controller';
 
 @Module({
-  controllers: [RequestController],
+  controllers: [RequestController, RequestApprovalController],
   providers: [RequestService],
 })
 export class RequestModule {}

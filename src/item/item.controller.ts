@@ -14,9 +14,10 @@ export class ItemController {
 
   @UseGuards(JwtAuthGuard) // Protected
   @Post()
-  create(@GetUser('roles') roles: string[], @Body() dto: CreateItemDto): Promise<Item> {
-    if (roles.includes('super_admin') || roles.includes('admin')) {
-      return this.itemService.create(dto);
+  create(@GetUser() user: {sub: string, roles: string[]}, @Body() dto: CreateItemDto): Promise<Item> {
+    const { sub, roles } = user;
+    if (roles.includes('pic')) {
+      return this.itemService.create(sub, dto);
     }
     throw new ForbiddenException('You are not allowed to add a item')
   }

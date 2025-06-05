@@ -58,8 +58,8 @@ export class UpdateRequestDto {
 
 export class ProcessApprovalDto {
     @IsNotEmpty()
-    @IsEnum(['Success', 'Reject'], { message: 'status must be either Success or Reject' }) // Only allow these two for this action
-    status: 'Success' | 'Reject';
+    @IsEnum(['Success', 'Reject', 'Revise', 'Canceled', 'Approved', 'Waiting_Manager_Approval', 'Waiting_PIC_Approval'], { message: 'required status' }) // Only allow these two for this action
+    status: 'Success' | 'Reject' | 'Revise' | 'Canceled' | 'Approved' | 'Waiting_Manager_Approval' | 'Waiting_PIC_Approval';
 
     @IsOptional()
     @IsString()

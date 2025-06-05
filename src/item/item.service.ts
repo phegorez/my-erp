@@ -7,13 +7,23 @@ import { Item } from '@prisma/client';
 export class ItemService {
   constructor(private prisma: PrismaService) { }
 
-  async create(dto: CreateItemDto): Promise<Item> {
+  async create(pic_id: string, dto: CreateItemDto): Promise<Item> {
+
+    
+
     // Check if category exists
     const category = await this.prisma.category.findUnique({
       where: { category_id: dto.category_id },
+      include: { pic: true }, // Include PIC details if needed
     });
+    
     if (!category) {
       throw new NotFoundException(`Category with ID "${dto.category_id}" not found.`);
+    }
+
+    // Check if the user is a PIC (Person In Charge)
+    if (category?.pic?.user_id !== pic_id) {
+      throw new NotFoundException(`User with ID "${pic_id}" is not assigned as PIC for this category.`);
     }
 
     return this.prisma.item.create({

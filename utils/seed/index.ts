@@ -13,7 +13,7 @@ async function main() {
     const defaultPassword = await argon.hash(defaultPasswordPattern)
 
     const result = await prisma.$transaction(async (tx) => {
-        const roleName = seedData.email_address === defaultAdminEmail ? 'super_admin' : 'user'
+        
 
         // create roles
         await tx.role.createMany({
@@ -70,7 +70,7 @@ async function main() {
                     create: {
                         role: {
                             connect: {
-                                role_name: roleName,
+                                role_name: 'super_admin',
                             }
                         }
                     }
