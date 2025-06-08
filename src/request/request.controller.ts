@@ -65,14 +65,16 @@ export class RequestController {
 export class RequestApprovalController {
   constructor(private readonly requestService: RequestService) { }
 
+  // for managers
   @Get()
   async findAllApprovals(
     @GetUser('sub') userId: string
   ): Promise<RequestModel[]> {
     if (!userId) throw new BadRequestException('User ID not found in token.');
-    return this.requestService.findAllApprovals(userId);
+    return this.requestService.findAllApprovals();
   }
 
+  // for managers
   @Patch(':id/process-approval')
   async processRequestApproval(
     @Param('id') requestId: string,
@@ -83,5 +85,28 @@ export class RequestApprovalController {
       throw new BadRequestException('Approving user ID not found in token.');
     }
     return this.requestService.processRequestApproval(requestId, dto, userId);
+  }
+
+  // for PICs
+  @Get('pic')
+  async findAllPicApprovals(
+    @GetUser('sub') userId: string
+  ): Promise<RequestModel[]> {
+    if (!userId) throw new BadRequestException('User ID not found in token.');
+    return this.requestService.findAllPicApprovals(userId);
+  }
+
+  // for PICs
+  @Patch(':id/process-approval/pic')
+  async processPicApproval(
+    @Param('id') requestId: string,
+    @Body() dto: ProcessApprovalDto,
+    @GetUser() userInfo: { sub: string, roles: string }, // Using sub from JWT token
+  ): Promise<RequestModel> {
+    const { sub, roles } = userInfo;
+    if (!sub) {
+      throw new BadRequestException('Approving user ID not found in token.');
+    }
+    return this.requestService.processPicApproval(requestId, dto, sub, roles);
   }
 }

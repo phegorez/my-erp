@@ -171,11 +171,6 @@ export class RequestService {
       let updatedStatus: RequestStatus;
       if (status === 'Approved') {
         updatedStatus = RequestStatus.Waiting_PIC_Approval; // Or whatever the success status is
-        // Optionally, mark items as unavailable here if needed
-        await tx.item.updateMany({
-          where: { item_id: { in: request.requestItems.map(ri => ri.item_id) } },
-          data: { is_available: false },
-        });
       } else if (status === 'Reject') {
         updatedStatus = RequestStatus.Reject; // Or whatever the reject status is
       } else if (status === 'Revise') {
@@ -201,6 +196,100 @@ export class RequestService {
           },
         },
         include: { requestItems: true, user: true, approvals: true },
+      });
+
+      return updatedRequest;
+    });
+  }
+
+  // for PIC approval
+  async processPicApproval(
+    requestId: string, dto: ProcessApprovalDto, approvingUserId: string, userRoles: string
+  ) {
+    const { status, comment } = dto;
+
+    // Validate request exists
+    const request = await this.prisma.request.findUnique({
+      where: { request_id: requestId },
+      include: { requestItems: true },
+    });
+
+    if (!request) {
+      throw new NotFoundException(`Request with ID "${requestId}" not found.`);
+    }
+
+    // Validate the current status allows for approval
+    if (request.status !== RequestStatus.Waiting_PIC_Approval) {
+      throw new BadRequestException(`Request is not in a state that allows approval. Current status: ${request.status}`);
+    }
+
+    // validate is approving user is pic
+    const approvingUser = await this.prisma.role.findFirst({
+      where: {
+        role_name: 'pic'
+      },
+      include: {
+        UserRole: {
+          select: {
+            user_id: true, // Assuming UserRole has a user_id field
+          }
+        }
+      }
+    });
+
+    const isPic = approvingUser?.UserRole.some(userRole => userRole.user_id === approvingUserId);
+    
+    if (!isPic) {
+      throw new ForbiddenException('Only users with PIC role can approve requests.');
+    }
+
+    // Start transaction
+    return this.prisma.$transaction(async (tx) => {
+      // Update the request status based on approval
+      let updatedStatus: RequestStatus;
+      if (status === 'Approved') {
+        updatedStatus = RequestStatus.Approved; // Or whatever the success status is
+        // Optionally, mark items as unavailable here if needed
+        await tx.item.updateMany({
+          where: { item_id: { in: request.requestItems.map(ri => ri.item_id) } },
+          data: { is_available: false },
+        });
+      } else if (status === 'Reject') {
+        updatedStatus = RequestStatus.Reject; // Or whatever the reject status is
+      } else if (status === 'Revise') {
+        updatedStatus = RequestStatus.Waiting_Manager_Approval; // Assuming this means it needs to be revised
+      } else if (status === 'Canceled') {
+        updatedStatus = RequestStatus.Canceled; // Assuming this is a valid status
+      } else {
+        throw new BadRequestException('Invalid approval status provided.');
+      }
+
+      // Update the request with the new status and add an approval record
+      const updatedRequest = await tx.request.update({
+        where: { request_id: requestId },
+        data: {
+          status: updatedStatus,
+          approvals: {
+            create: {
+              approver_id: approvingUserId,
+              comment,
+              role: 'PIC', // or the appropriate role string/enum value
+              status: status,  // assuming status is either 'Approved' or 'Reject'
+            },
+          },
+        },
+        include: { requestItems: true, user: {
+          select: {
+            first_name: true,
+            last_name: true,
+            email_address: true,
+            Personal: {
+              select: {
+                phone_number: true,
+              }
+            }
+          }
+        }, approvals: true },
       });
 
       return updatedRequest;
@@ -293,14 +382,39 @@ export class RequestService {
 
 
   // for approvals
-  async findAllApprovals(userId: string): Promise<Request[]> {
+  
+  // for manager
+  async findAllApprovals(): Promise<Request[]> {
     // This method retrieves all requests that require approval by the user
     return this.prisma.request.findMany({
       where: {
-        user_manager_id: userId,
-        status: {
-          in: [RequestStatus.Waiting_Manager_Approval, RequestStatus.Waiting_PIC_Approval],
+        status: RequestStatus.Waiting_Manager_Approval,
+      },
+      include: {
+        requestItems: { include: { item: true } },
+        user: {
+          select: {
+            first_name: true,
+            last_name: true,
+            email_address: true,
+            Personal: {
+              select: {
+                phone_number: true,
+              },
+            },
+          },
         },
+      },
+      orderBy: { request_date: 'desc' },
+    });
+  }
+
+  // for pic
+  async findAllPicApprovals(userId: string): Promise<Request[]> {
+    // This method retrieves all requests that require PIC approval by the user
+    return this.prisma.request.findMany({
+      where: {
+        status: RequestStatus.Waiting_PIC_Approval,
       },
       include: {
         requestItems: { include: { item: true } },
