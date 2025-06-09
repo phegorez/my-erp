@@ -318,7 +318,10 @@ export class UserService {
       if (!user) {
         throw new ForbiddenException('User not found')
       }
-      return user
+      return {
+        data: user,
+        ok: true
+      }
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === 'P2025') {

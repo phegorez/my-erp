@@ -9,24 +9,8 @@ import Link from "next/link";
 import { withAuth } from '@/hoc/withAuth'; // Import HOC
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"; // Import Card
 import { Separator } from "@/components/ui/separator"; // Import Separator
+import { AuthUser } from "@/types";
 
-// Define an interface for the user profile data
-interface UserProfile {
-  id: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  id_card_number: string;
-  phone_number: string;
-  date_of_birth: string; // Keep as string for display, can be Date object if needed
-  gender: string;
-  department: string;
-  job_title: string;
-  grade: string;
-  created_at: string;
-  updated_at: string;
-  // Add any other fields your API returns
-}
 
 // Helper component to display profile information items
 const ProfileInfoItem: React.FC<{ label: string; value: string | undefined | null }> = ({ label, value }) => (
@@ -38,7 +22,7 @@ const ProfileInfoItem: React.FC<{ label: string; value: string | undefined | nul
 
 function ProfilePageInternal() { // Renamed for HOC
   const router = useRouter();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profile, setProfile] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,18 +33,18 @@ function ProfilePageInternal() { // Renamed for HOC
       setError(null);
       try {
         // Check for auth token before fetching
-        const token = localStorage.getItem('authToken');
-        if (!token) {
-          router.push('/auth/login'); // Redirect if not authenticated
-          return;
+        const res = await fetchMyProfile();
+        if (!res.ok) throw new Error ("Not authenticated")
+        if (res.data) {
+          const data : AuthUser = res.data
+          setProfile(data);
         }
-        const data = await fetchMyProfile();
-        setProfile(data);
+        
       } catch (err: any) {
         console.error("Failed to fetch profile:", err);
         setError(err.message || "Could not load profile. Please try again later.");
         if (err.status === 401 || err.status === 403) { // Example: handle auth errors
-            router.push('/auth/login');
+          router.push('/auth/login');
         }
       } finally {
         setIsLoading(false);
@@ -91,12 +75,12 @@ function ProfilePageInternal() { // Renamed for HOC
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-150px)]">
         <p className="text-lg text-muted-foreground">No profile data found.</p>
-         <Button onClick={() => router.push('/dashboard')} variant="outline" className="mt-4">Go to Dashboard</Button>
+        <Button onClick={() => router.push('/dashboard')} variant="outline" className="mt-4">Go to Dashboard</Button>
       </div>
     );
   }
 
-  const displayDateOfBirth = profile.date_of_birth ? new Date(profile.date_of_birth).toLocaleDateString() : null;
+  const displayDateOfBirth = profile.Personal.date_of_birth ? new Date(profile.Personal.date_of_birth).toLocaleDateString() : null;
   const displayUpdatedAt = profile.updated_at ? new Date(profile.updated_at).toLocaleString() : null;
   const displayCreatedAt = profile.created_at ? new Date(profile.created_at).toLocaleString() : null;
 
@@ -111,25 +95,25 @@ function ProfilePageInternal() { // Renamed for HOC
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
             <ProfileInfoItem label="First Name" value={profile.first_name} />
             <ProfileInfoItem label="Last Name" value={profile.last_name} />
-            <ProfileInfoItem label="Email" value={profile.email} />
-            <ProfileInfoItem label="ID Card Number" value={profile.id_card_number} />
-            <ProfileInfoItem label="Phone Number" value={profile.phone_number} />
+            <ProfileInfoItem label="Email" value={profile.email_address} />
+            <ProfileInfoItem label="ID Card Number" value={profile.Personal.id_card} />
+            <ProfileInfoItem label="Phone Number" value={profile.Personal.phone_number} />
             <ProfileInfoItem label="Date of Birth" value={displayDateOfBirth} />
-            <ProfileInfoItem label="Gender" value={profile.gender} />
-            <ProfileInfoItem label="Department" value={profile.department} />
-            <ProfileInfoItem label="Job Title" value={profile.job_title} />
-            <ProfileInfoItem label="Grade" value={profile.grade} />
+            <ProfileInfoItem label="Gender" value={profile.Personal.gender} />
+            <ProfileInfoItem label="Department" value={profile.Employee.department.department_name} />
+            <ProfileInfoItem label="Job Title" value={profile.Employee.job_title.job_title_name} />
+            <ProfileInfoItem label="Grade" value={profile.Employee.grade} />
           </div>
           <Separator className="my-6" />
-           <div className="text-sm text-muted-foreground space-y-1">
+          <div className="text-sm text-muted-foreground space-y-1">
             <p>Profile last updated: {displayUpdatedAt || "N/A"}</p>
             <p>Member since: {displayCreatedAt || "N/A"}</p>
           </div>
         </CardContent>
         <CardFooter className="flex justify-center pt-6 border-t">
-            <Link href="/profile/edit" passHref>
-              <Button size="lg">Edit Profile</Button>
-            </Link>
+          <Link href="/profile/edit" passHref>
+            <Button size="lg">Edit Profile</Button>
+          </Link>
         </CardFooter>
       </Card>
     </div>

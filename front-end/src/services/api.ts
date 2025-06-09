@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Define the base URL for the API. This could be moved to an environment variable.
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'; // Assuming backend runs on port 8000
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL as string; // Assuming backend runs on port 8000
 
 // Create an axios instance
 const apiClient = axios.create({
@@ -9,21 +9,8 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // This allows cookies to be sent with requests
 });
-
-// Add a request interceptor to include the token in headers
-apiClient.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
 
 // --- Authentication Endpoints ---
 
@@ -34,16 +21,18 @@ apiClient.interceptors.request.use(
  */
 export const loginUser = async (credentials: any) => {
   try {
-    const response = await apiClient.post('/auth/login', credentials);
-    // TODO: Handle token storage if login is successful
-    // Example: if (response.data.token) { localStorage.setItem('token', response.data.token); }
-    return response.data;
+    // console.log(credentials)
+    const response = await apiClient.post('/auth/signin', {
+      email_address: credentials.email,
+      password: credentials.password,
+    });
+
+    return response;
   } catch (error) {
-    // Axios wraps the error in `error.response` if the server responded
     if (axios.isAxiosError(error) && error.response) {
       throw error.response.data;
     }
-    throw error; // For network errors or other issues
+    throw error;
   }
 };
 
@@ -78,7 +67,6 @@ export const registerUser = async (userData: any) => {
 export const fetchMyProfile = async () => {
   try {
     // Example: Get token from localStorage
-    const token = localStorage.getItem('authToken');
     const response = await apiClient.get('/my-profile', {
       headers: {
         // Authorization: `Bearer ${token}`, // Uncomment if backend expects Bearer token
@@ -269,12 +257,12 @@ export const fetchUsersByRole = async (role: string) => {
   try {
     const token = localStorage.getItem('authToken');
     const response = await apiClient.get(`/users?role=${role}`, { // Assuming /users endpoint with role filter
-        headers: { /* Authorization: `Bearer ${token}` */ },
+      headers: { /* Authorization: `Bearer ${token}` */ },
     });
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response) {
-        throw error.response.data;
+      throw error.response.data;
     }
     throw error;
   }

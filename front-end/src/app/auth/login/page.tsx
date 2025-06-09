@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { loginUser as apiLoginUser } from "@/services/api"; // Renamed to avoid 
 import { useAuth } from "@/contexts/AuthContext"; // Import useAuth
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"; // Import Card components
+import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -21,7 +22,7 @@ export default function LoginPage() {
   // Redirect if already authenticated and not loading
   useEffect(() => {
     if (!isAuthLoading && isAuthenticated) {
-      const redirectPath = router.query?.redirect as string || "/dashboard";
+      const redirectPath = "/dashboard";
       router.push(redirectPath);
     }
   }, [isAuthenticated, isAuthLoading, router]);
@@ -45,18 +46,18 @@ export default function LoginPage() {
       return;
     }
 
+    // console.log("Submitting login with email:", email, "and password:", password)
+
     setIsLoading(true); // For API call
     try {
       const response = await apiLoginUser({ email, password }); // Call the API function
-      console.log("Login API success:", response);
 
-      if (response.access_token) { // Assuming backend returns { access_token: "..." }
-        contextLogin(response.access_token); // Use AuthContext's login
+      if (response.data.ok) {
+        // Call context login to set user state
+        await contextLogin();
         // Redirect based on query param or to dashboard
-        const redirectPath = router.query?.redirect as string || "/dashboard";
+        const redirectPath = "/dashboard";
         router.push(redirectPath);
-      } else {
-        setError("Login successful, but no token received."); // Should not happen with correct backend
       }
     } catch (err: any) {
       console.error("Login failed:", err);

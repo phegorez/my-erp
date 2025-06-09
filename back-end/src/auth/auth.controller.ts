@@ -4,6 +4,7 @@ import { AuthDto, UpdatePasswordDto } from './dto';
 import { Response } from 'express';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { GetUser } from './common/decorator/get-user.decorators';
+import { ok } from 'assert';
 
 @Controller('auth')
 export class AuthController {
@@ -22,7 +23,8 @@ export class AuthController {
       httpOnly: true,
     })
     return {
-      message: 'Signin Successful'
+      message: 'Signin Successful',
+      ok: true,
     }
 
     // for test

@@ -25,13 +25,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full bg-gray-50"> {/* Added bg-gray-50 for overall page background */}
+    <html lang="en" className="h-full bg-gray-50">
+      {/* Added bg-gray-50 for overall page background */}
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased h-full flex flex-col`}
       >
         <AuthProvider> {/* Wrap children with AuthProvider */}
-          <Navbar />
-          <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full max-w-7xl"> {/* Added padding and max-width */}
+          {/* <Navbar /> */}
+          <main suppressHydrationWarning={false}> {/* Added padding and max-width */}
             {children}
           </main>
           {/* Potential Footer could go here */}

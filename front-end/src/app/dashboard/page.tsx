@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-
-export default function DashboardPage() {
 import { useAuth } from "@/contexts/AuthContext"; // Use the actual AuthContext
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +16,15 @@ export default function DashboardPage() {
     if (!isLoading && !user) {
       router.push('/auth/login');
     }
+
+    const allowedRoles = ['super_admin', 'admin', 'pic'];
+    const hasPermission = user?.UserRole?.some(ur => allowedRoles.includes(ur.role.role_name));
+      if (!hasPermission) {
+        console.log("❌ ไม่มีสิทธิ์");
+      } else {
+        console.log("✅ มีสิทธิ์");
+      }
+
   }, [user, isLoading, router]);
 
   const handleLogout = () => {
@@ -51,7 +58,7 @@ export default function DashboardPage() {
     <div className="space-y-8">
       <Card className="shadow-lg">
         <CardHeader>
-          <CardTitle className="text-3xl font-bold text-gray-800">Welcome to Your Dashboard, {user.first_name || user.email}!</CardTitle>
+          <CardTitle className="text-3xl font-bold text-gray-800">Welcome to Your Dashboard, {user.first_name || user.email_address}!</CardTitle>
           <CardDescription>Here's a quick overview and access to your tasks.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -69,10 +76,9 @@ export default function DashboardPage() {
           </div>
 
           <div className="mt-6">
-             <h3 className="text-xl font-semibold mb-3 text-gray-700">Account Information</h3>
-             <p className="text-gray-600"><strong>Email:</strong> {user.email}</p>
-             <p className="text-gray-600"><strong>Roles:</strong> {user.roles.join(', ')}</p>
-             {/* Add more user info if desired */}
+            <h3 className="text-xl font-semibold mb-3 text-gray-700">Account Information</h3>
+            <p className="text-gray-600"><strong>Email:</strong> {user.email_address}</p>
+            {/* Add more user info if desired */}
           </div>
 
         </CardContent>
@@ -85,17 +91,10 @@ export default function DashboardPage() {
       </Card> */}
 
       <div className="text-center mt-10">
-         <Button variant="destructive" onClick={handleLogout}>
-            Logout
-          </Button>
+        <Button variant="destructive" onClick={handleLogout}>
+          Logout
+        </Button>
       </div>
     </div>
   );
 }
-
-// This page should also be wrapped with withAuth if it's not the default landing for authenticated users
-// For example, in its own file:
-// import { withAuth } from '@/hoc/withAuth';
-// const ProtectedDashboardPage = withAuth(DashboardPage);
-// export default ProtectedDashboardPage;
-// However, if it's the primary redirect target after login, the checks within are fine.

@@ -2,8 +2,9 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth, AuthUser } from '@/contexts/AuthContext'; // Adjust path as needed
+import { useAuth } from '@/contexts/AuthContext'; // Adjust path as needed
 import { NextPage } from 'next'; // For typing the wrapped component
+import { AuthUser } from '@/types';
 
 // Define a type for component props that might include the user
 export interface WithAuthProps {
