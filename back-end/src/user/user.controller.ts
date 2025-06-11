@@ -5,12 +5,11 @@ import { JwtAuthGuard } from 'src/auth/common/guards/jwt-auth.guard';
 import { GetUser } from 'src/auth/common/decorator/get-user.decorators';
 
 @UseGuards(JwtAuthGuard)
-@Controller('user')
+@Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) { }
 
   // add new user
-
   @Post()
   create(@GetUser('sub') userId: string, @GetUser('roles') roles: string[], @Body() userDto: UserDto) {
     if (roles.includes('super_admin') || roles.includes('admin')) {

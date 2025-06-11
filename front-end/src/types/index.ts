@@ -7,6 +7,41 @@ export interface Personal {
     gender: 'male' | 'female';
 }
 
+export interface AddNewUser {
+    first_name: string;
+    last_name: string;
+    email_address: string;
+    id_card: string;
+    phone_number: string;
+    date_of_birth: Date;
+    gender: string;
+    department_name: string;
+    job_title_name: string;
+    grade: string;
+}
+
+export interface User {
+    user_id: string;
+    grade: string;
+    user: UserData;
+    department: Department;
+    job_title: JobTitle;
+}
+
+export interface UserData {
+    first_name: string;
+    last_name: string;
+    email_address: string;
+    Personal: Personal;
+    userMetaData: UserMetaData[];
+    UserRole: UserRole[]
+}
+
+export interface UserMetaData {
+    start_date: Date;
+    status: string;
+}
+
 export interface Department {
     department_id: string;
     department_name: string;
@@ -33,9 +68,6 @@ export interface Role {
 }
 
 export interface UserRole {
-    id: number;
-    user_id: string;
-    role_id: string;
     role: Role;
 }
 

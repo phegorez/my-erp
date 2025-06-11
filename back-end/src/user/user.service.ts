@@ -3,8 +3,8 @@ import { EditPersonalDto, UpdateUserDto, UserDto } from './dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import * as argon from 'argon2'
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
-import { MetaData, User } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
+import { ok } from 'assert';
 
 @Injectable()
 export class UserService {
@@ -100,7 +100,7 @@ export class UserService {
           }
         });
 
-        return { newUser, metaData };
+        return { newUser, metaData, };
       });
 
       const { first_name, last_name, email_address } = result.newUser;
@@ -109,7 +109,7 @@ export class UserService {
         email_address
       };
 
-      return { message: 'user created', res_newUser, metaData: result.metaData };
+      return { message: 'user created', res_newUser, metaData: result.metaData, ok: true };
 
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError) {
@@ -143,19 +143,45 @@ export class UserService {
       const allUsers = await this.prisma.employee.findMany({
         select: {
           user_id: true,
+          grade: true,
           user: {
             select: {
               first_name: true,
               last_name: true,
               email_address: true,
+              Personal: {
+                select: {
+                  phone_number: true,
+                }
+              },
+              userMetaData: {
+                select: {
+                  start_date: true,
+                  status: true,
+                }
+              },
+              UserRole: {
+                select: {
+                  role: {
+                    select: {
+                      role_id: true,
+                      role_name: true,
+                    }
+                  }
+                }
+              }
             }
           },
           department: true,
-          job_title: true
+          job_title: true,
+          
         }
       })
 
-      return allUsers
+      return {
+        data: allUsers,
+        ok: true
+      }
     } catch (error) {
       throw error;
     }
@@ -246,7 +272,10 @@ export class UserService {
         }
       })
       if (result.length > 0) {
-        return result
+        return {
+          data: result,
+          ok: true
+        }
       } else {
         throw new BadRequestException(`No users found with ${query} = ${value}`);
       }
@@ -335,7 +364,7 @@ export class UserService {
   async getAllDepartments() {
     try {
       const allDepartments = await this.prisma.department.findMany()
-      return allDepartments
+      return { allDepartments, ok: true }
     } catch (error) {
       throw error
     }
@@ -406,7 +435,7 @@ export class UserService {
           UserRole: {
             create: {
               role: {
-                connect : {
+                connect: {
                   role_name: userDto.role_name
                 }
               }
@@ -438,7 +467,7 @@ export class UserService {
           user_id: user_id
         }
       })
-      return { message: 'User deleted successfully' };
+      return { message: 'User deleted successfully', ok: true };
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === 'P2025') {

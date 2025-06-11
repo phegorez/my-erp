@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Inventory Management System", // Updated title
-  description: "Frontend for Inventory Management System", // Updated description
+  title: "MyERP⚙️", // Updated title
+  description: "Frontend for MyERP System", // Updated description
 };
 
 export default function RootLayout({
@@ -31,7 +31,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased h-full flex flex-col`}
       >
         <AuthProvider> {/* Wrap children with AuthProvider */}
-          {/* <Navbar /> */}
+          <Navbar />
           <main suppressHydrationWarning={false}> {/* Added padding and max-width */}
             {children}
           </main>

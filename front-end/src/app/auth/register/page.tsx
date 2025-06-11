@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { registerUser } from "@/services/api";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"; // Import Card components
 import Link from "next/link"; // Import Link for footer
 
@@ -73,25 +72,10 @@ export default function RegisterPage() {
         return;
     }
 
-    // Map frontend field names to backend field names if they differ
-    // The backend expects 'password_hash', 'id_card_number', 'phone_number', 'date_of_birth', 'job_title'
-    // Our frontend state uses 'password_hash', 'id_card_number', 'phone_number', 'date_of_birth', 'job_title' for these already.
-    // It expects 'first_name' and 'last_name' for 'firstName' and 'lastName'.
-    const submissionData = {
-        ...formData,
-        first_name: formData.firstName,
-        last_name: formData.lastName,
-    };
-    // remove original camelCase keys if necessary, but backend might ignore them
-    // delete submissionData.firstName;
-    // delete submissionData.lastName;
-
-
     setIsLoading(true);
     try {
       // Make sure to send data in the format expected by the backend
       // The backend API expects: first_name, last_name, email, password_hash, id_card_number, phone_number, date_of_birth, gender, department, job_title, grade
-      await registerUser(submissionData);
       console.log("Registration successful");
       router.push("/auth/login?registrationSuccess=true"); // Redirect to login with a success message
     } catch (err: any) {

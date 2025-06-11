@@ -34,7 +34,7 @@ export default function LoginPage() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setError(null); // Reset error message
+    setError(null);
 
     if (!email.trim() || !password.trim()) {
       setError("Both email and password are required.");
@@ -46,22 +46,17 @@ export default function LoginPage() {
       return;
     }
 
-    // console.log("Submitting login with email:", email, "and password:", password)
-
-    setIsLoading(true); // For API call
+    setIsLoading(true);
     try {
-      const response = await apiLoginUser({ email, password }); // Call the API function
+      const response = await apiLoginUser({ email, password });
 
       if (response.data.ok) {
-        // Call context login to set user state
         await contextLogin();
-        // Redirect based on query param or to dashboard
         const redirectPath = "/dashboard";
         router.push(redirectPath);
       }
     } catch (err: any) {
       console.error("Login failed:", err);
-      // err might be { message: "..." } from api.ts or other Axios error structure
       setError(err.detail || err.message || "An unexpected error occurred. Please try again.");
     } finally {
       setIsLoading(false);

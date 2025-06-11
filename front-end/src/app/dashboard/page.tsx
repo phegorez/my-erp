@@ -43,6 +43,7 @@ export default function DashboardPage() {
 
   // Quick Links/Actions based on role
   const quickLinks = [
+    { href: "/users", label: "User Management", roles: ['super_admin', 'admin'] }, // Placeholder for user management
     { href: "/requests/my-requests", label: "View My Requests", roles: [] }, // Accessible to all authenticated
     { href: "/profile", label: "My Profile", roles: [] },
     { href: "/items", label: "Manage Items", roles: ['admin', 'super_admin', 'pic'] },

@@ -72,7 +72,7 @@ model User {
 // --- Authentication Log ---
 model AuthenLog {
   authenLog_id            String   @id @default(nanoid(7))
-  user                    User     @relation(fields: [user_id], references: [user_id])
+  user                    User     @relation(fields: [user_id], references: [user_id], onDelete: Cascade) // เชื่อมโยงไปยัง User
   user_id                 String   @unique
   lastLogin_date          DateTime
   lastPassword_changeDate DateTime @default(now())
@@ -161,10 +161,10 @@ model Category {
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-  
+
   // Foreign key to Pic
-  picId      String?
-  pic        Pic?     @relation(fields: [picId], references: [id])
+  picId String?
+  pic   Pic?    @relation(fields: [picId], references: [id])
 }
 
 model Pic {
@@ -209,7 +209,7 @@ model Request {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
-  user          User      @relation(fields: [user_id], references: [user_id])
+  user          User      @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
   parentRequest Request?  @relation("RequestToRequest", fields: [parent_request_id], references: [request_id])
   childRequests Request[] @relation("RequestToRequest")
 

@@ -1,7 +1,8 @@
 "use client";
 
-import { fetchMyProfile } from "@/services/api";
+import { fetchMyProfile, logoutUser } from "@/services/api";
 import { AuthUser } from "@/types";
+import { useRouter } from "next/navigation";
 import React, {
   createContext,
   useContext,
@@ -30,56 +31,40 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  const router = useRouter();
+
   useEffect(() => {
-    const checkAuth = async () => {
-      setIsLoading(true);
-      try {
-        const res = await fetchMyProfile();
-
-        if (!res) throw new Error("Not authenticated");
-
-        const data = res.data
-        setUser(data);
-        setIsAuthenticated(true);
-      } catch (error) {
-        setUser(null);
-        setIsAuthenticated(false);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     checkAuth();
   }, []);
 
   const login = async () => {
-    await new Promise((resolve) => setTimeout(resolve, 200));
     await checkAuth();
   };
 
   const logout = async () => {
     try {
-      await fetch("http://localhost:3000/auth/logout", {
-        method: "POST",
-        credentials: "include",
-      });
+      await logoutUser();
     } catch { }
     setUser(null);
     setIsAuthenticated(false);
   };
 
   const checkAuth = async () => {
-    setIsLoading(true);
     try {
       const res = await fetchMyProfile();
-
-      if (!res) throw new Error("Not authenticated");
-
-      setUser(res);
-      setIsAuthenticated(true);
+      if (res.ok) {
+        setUser(res.data);
+        setIsAuthenticated(true);
+        return true
+      } else {
+        setUser(null);
+        setIsAuthenticated(false);
+        return false;
+      }
     } catch (error) {
       setUser(null);
       setIsAuthenticated(false);
+      router.push('/auth/login'); // Redirect to login if not authenticated
     } finally {
       setIsLoading(false);
     }

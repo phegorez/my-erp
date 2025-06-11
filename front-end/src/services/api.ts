@@ -1,4 +1,7 @@
+import { AddNewUser, User } from '@/types';
 import axios from 'axios';
+import { ca } from 'date-fns/locale';
+import { use } from 'react';
 
 // Define the base URL for the API. This could be moved to an environment variable.
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL as string; // Assuming backend runs on port 8000
@@ -14,11 +17,6 @@ const apiClient = axios.create({
 
 // --- Authentication Endpoints ---
 
-/**
- * Logs in a user.
- * @param credentials - The user's email and password.
- * @returns The response from the API.
- */
 export const loginUser = async (credentials: any) => {
   try {
     // console.log(credentials)
@@ -36,42 +34,44 @@ export const loginUser = async (credentials: any) => {
   }
 };
 
-// --- User Endpoints ---
-
-/**
- * Registers a new user.
- * @param userData - The data for the new user.
- * @returns The response from the API.
- */
-export const registerUser = async (userData: any) => {
+export const logoutUser = async () => {
   try {
-    const response = await apiClient.post('/user', userData); // Assuming POST to /api/user for registration
-    return response.data;
+    const response = await apiClient.post('/auth/signout');
+    return response;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response) {
       throw error.response.data;
     }
     throw error;
   }
-};
+}
+
+// --- User Endpoints ---
+
+
 
 // --- Profile Management Endpoints ---
 
-/**
- * Fetches the current user's profile.
- * Assumes the token is sent automatically by the browser (e.g., in a cookie)
- * or that axios instance is configured with an interceptor to add the auth token.
- * For this example, we'll add a placeholder for token handling.
- * @returns The user profile data.
- */
+// get all users
+export const fetchAllUsers = async (): Promise<User[]> => {
+  try {
+    const response = await apiClient.get('/users')
+    const result = response.data;
+    if (!result.ok) {
+      throw new Error('Failed to fetch users');
+    }
+    return result.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      throw error.response.data;
+    }
+    throw error;
+  }
+}
+
 export const fetchMyProfile = async () => {
   try {
-    // Example: Get token from localStorage
-    const response = await apiClient.get('/my-profile', {
-      headers: {
-        // Authorization: `Bearer ${token}`, // Uncomment if backend expects Bearer token
-      },
-    });
+    const response = await apiClient.get('/my-profile');
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response) {
@@ -80,6 +80,44 @@ export const fetchMyProfile = async () => {
     throw error;
   }
 };
+
+// add a new user
+export const addUser = async (userData: AddNewUser) => {
+  try {
+    const response = await apiClient.post('/users', userData);
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      throw error.response.data;
+    }
+    throw error;
+  }
+};
+
+export const removeUser = async (userId: string) => {
+  try {
+    const response = await apiClient.delete(`/users/${userId}`);
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      throw error.response.data;
+    }
+    throw error;
+  }
+}
+
+// get all departments
+export const fetchAllDepartments = async () => {
+  try {
+    const response = await apiClient.get('/departments');
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      throw error.response.data;
+    }
+    throw error;
+  }
+}
 
 /**
  * Updates the user's personal information.
