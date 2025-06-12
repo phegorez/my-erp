@@ -1,5 +1,5 @@
-import { addUser, fetchAllDepartments, fetchAllUsers, removeUser } from '@/services/api';
-import { AddNewUser, Department, User } from '@/types'
+import { addUser, editUser, fetchAllDepartments, fetchAllUsers, removeUser } from '@/services/api';
+import { AddNewUser, Department, EditedUserData, User } from '@/types'
 import { AxiosError } from 'axios';
 import { th } from 'date-fns/locale';
 import { create } from 'zustand'
@@ -11,6 +11,7 @@ interface UserState {
     error: string | null;
     lastFetched: null | number;
     addNewUser: (userData: AddNewUser) => Promise<boolean>;
+    editeUser: (userId: string, editedUserData: EditedUserData) => Promise<boolean | undefined>;
     fetchAllUsers: () => Promise<void>;
     deleteUser: (userId: string) => void;
     getDepartments: () => Promise<void>;
@@ -34,6 +35,28 @@ export const useUserStore = create<UserState>((set) => ({
             }
         } catch (error: any) {
             console.error("Failed to add new user:", error);
+            let errorMessage = "An unknown error occurred.";
+            if (error instanceof AxiosError && error.response) {
+                errorMessage = error.response.data.message || error.response.data.detail || error.message;
+            } else if (error instanceof Error) {
+                errorMessage = error.message;
+            }
+            set({ error: errorMessage, isLoading: false });
+        }
+    },
+
+    editeUser: async (userId: string, editedUserData: EditedUserData) => {
+        set({ isLoading: true, error: null });
+        try {
+            const response = await editUser(userId, editedUserData);
+            if (response.ok) {
+                // fetch the updated list of users after editing
+                const updatedUsers = await fetchAllUsers();
+                set({ users: updatedUsers, isLoading: false, error: null });
+                return true;
+            }
+        } catch (error: any) {
+            console.error("Failed to edit user:", error);
             let errorMessage = "An unknown error occurred.";
             if (error instanceof AxiosError && error.response) {
                 errorMessage = error.response.data.message || error.response.data.detail || error.message;

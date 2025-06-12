@@ -4,7 +4,23 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import * as argon from 'argon2'
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { ConfigService } from '@nestjs/config';
-import { ok } from 'assert';
+import { Prisma, Role as PrismaRole, $Enums } from '@prisma/client';
+
+type EmployeeUpdateInput = {
+  grade?: string;
+  department?: {
+    connectOrCreate: {
+      where: { department_name: string };
+      create: { department_name: string };
+    };
+  };
+  job_title?: {
+    connectOrCreate: {
+      where: { job_title_name: string };
+      create: { job_title_name: string };
+    };
+  };
+};
 
 @Injectable()
 export class UserService {
@@ -174,7 +190,7 @@ export class UserService {
           },
           department: true,
           job_title: true,
-          
+
         }
       })
 
@@ -422,32 +438,88 @@ export class UserService {
     }
 
     try {
+      // Prepare the update data object
+      const editedData: Prisma.UserUpdateInput = {
+        first_name: userDto.first_name,
+        last_name: userDto.last_name,
+        fullname: `${userDto.first_name || ''} ${userDto.last_name || ''}`.trim(),
+        Employee: {
+          update: {}
+        }
+      };
+
+      // Ensure Employee and Employee.update are defined
+      if (!editedData.Employee) {
+        editedData.Employee = { update: {} };
+      }
+      if (!editedData.Employee.update) {
+        editedData.Employee.update = {};
+      }
+
+      // Add employee updates one by one
+      if (userDto.grade) {
+        (editedData.Employee.update as EmployeeUpdateInput) = {
+          ...(editedData.Employee.update as EmployeeUpdateInput),
+          grade: userDto.grade,
+        };
+      }
+
+      if (userDto.department_name) {
+        // Only add department if Prisma schema allows nested updates for department
+        (editedData.Employee.update as EmployeeUpdateInput).department = {
+          connectOrCreate: {
+            where: {
+              department_name: userDto.department_name
+            },
+            create: {
+              department_name: userDto.department_name
+            }
+          }
+        };
+      }
+
+      if (userDto.job_title_name) {
+        (editedData.Employee.update as EmployeeUpdateInput).job_title = {
+          connectOrCreate: {
+            where: {
+              job_title_name: userDto.job_title_name
+            },
+            create: {
+              job_title_name: userDto.job_title_name
+            }
+          }
+        };
+      }
+
+      if (userDto.role_name) {
+        // Ensure role_name is of the correct enum type
+        editedData.UserRole = {
+          create: [
+            {
+              role: {
+                connect: {
+                  role_name: userDto.role_name as $Enums.RoleEnum
+                }
+              }
+            }
+          ]
+        };
+      }
 
       // update user information
       await this.prisma.user.update({
         where: {
           user_id: user_id
         },
-        data: {
-          first_name: userDto.first_name,
-          last_name: userDto.last_name,
-          fullname: `${userDto.first_name} ${userDto.last_name}`,
-          UserRole: {
-            create: {
-              role: {
-                connect: {
-                  role_name: userDto.role_name
-                }
-              }
-            }
-          }
-        }
-      })
+        data: editedData
+      });
 
       return {
         message: 'User updated successfully',
+        ok: true
       }
     } catch (error) {
+      console.log(error)
       if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === 'P2025') {
           throw new BadRequestException('User not found');

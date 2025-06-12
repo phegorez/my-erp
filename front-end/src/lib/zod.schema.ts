@@ -21,3 +21,14 @@ export const UserFormSchema = z.object({
         invalid_type_error: "Invalid Grade selected.",
     }),
 })
+
+export const BasicInfoSchema = z.object({
+    first_name: z.string().optional(),
+    last_name: z.string().optional(),
+})
+
+export const EmployeeInfoSchema = z.object({
+    department_name: z.string().optional(),
+    job_title_name: z.string().optional(),
+    grade: z.string().optional(),
+})

@@ -1,4 +1,4 @@
-import { AddNewUser, User } from '@/types';
+import { AddNewUser, EditedUserData, User } from '@/types';
 import axios from 'axios';
 import { ca } from 'date-fns/locale';
 import { use } from 'react';
@@ -93,6 +93,19 @@ export const addUser = async (userData: AddNewUser) => {
     throw error;
   }
 };
+
+// edit user
+export const editUser = async (userId: string, editedUserData: EditedUserData) => {
+  try {
+    const response = await apiClient.patch(`/users/${userId}`, editedUserData);
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      throw error.response.data;
+    }
+    throw error;
+  }
+}
 
 export const removeUser = async (userId: string) => {
   try {

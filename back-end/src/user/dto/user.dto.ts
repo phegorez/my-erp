@@ -47,15 +47,27 @@ export class UpdateUserDto {
 
     @IsString()
     @IsOptional()
-    first_name: string;
+    first_name?: string;
 
     @IsString()
     @IsOptional()
-    last_name: string;
+    last_name?: string;
 
     @IsOptional()
     @IsEnum(['admin', 'user'])
-    role_name: 'admin' | 'user';
+    role_name?: 'admin' | 'user';
+
+    @IsOptional()
+    @IsString()
+    department_name?: string
+
+    @IsOptional()
+    @IsString()
+    grade: string;
+
+    @IsOptional()
+    @IsString()
+    job_title_name?: string;
 }
 
 export class EditPersonalDto {

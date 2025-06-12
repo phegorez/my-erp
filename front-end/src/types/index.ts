@@ -81,3 +81,36 @@ export interface AuthUser {
     Employee: Employee;
     UserRole: UserRole[];
 }
+
+enum UserRoleName {
+    Admin = 'admin',
+    User = 'user'
+}
+
+export interface EditedUserData {
+    first_name?: string;
+    last_name?: string;
+
+    // enum {admin, user}
+    role_name?: UserRoleName;
+
+    department_name?: string;
+    job_title_name?: string;
+    grade?: string;
+}
+
+export interface formUserEdit {
+    user_id: string
+    user: {
+        first_name: string
+        last_name: string
+        email_address: string
+    }
+    department: {
+        department_name: string
+    }
+    job_title: {
+        job_title_name: string
+    }
+    grade?: string
+}

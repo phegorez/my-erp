@@ -10,119 +10,163 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-
-interface User {
-    user_id: string
-    user: {
-        first_name: string
-        last_name: string
-        email_address: string
-    }
-    department: {
-        department_name: string
-    }
-    job_title: {
-        job_title_name: string
-    }
-    grade?: string
-}
-
-interface Department {
-    department_id: string
-    department_name: string
-}
+import z from "zod"
+import { BasicInfoSchema, EmployeeInfoSchema } from "@/lib/zod.schema"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { Controller, useForm } from "react-hook-form"
+import { Alert, AlertDescription } from "./ui/alert"
+import { Department, formUserEdit } from "@/types"
+import { useUserStore } from "@/stores/userStore"
 
 interface UserEditDialogProps {
-    user: User | null
+    user: formUserEdit | null
     departments: Department[]
     open: boolean
     onOpenChange: (open: boolean) => void
 }
+type BasicInfoFormValue = z.infer<typeof BasicInfoSchema>
+type EmployeeInfoFormValue = z.infer<typeof EmployeeInfoSchema>
 
 export function UserEditDialog({ user, departments, open, onOpenChange }: UserEditDialogProps) {
-    const [basicInfo, setBasicInfo] = useState({
-        first_name: "",
-        last_name: "",
-        email_address: "",
-    })
-
-    const [employeeInfo, setEmployeeInfo] = useState({
-        department_name: "",
-        job_title_name: "",
-        grade: "",
-    })
-
-    const [personalInfo, setPersonalInfo] = useState({
-        id_card: "",
-        phone_number: "",
-        date_of_birth: "",
-        gender: "",
-    })
-
     const [loading, setLoading] = useState(false)
+    const [validationErrors, setValidationErrors] = useState<string[]>([])
+
+    const { editeUser } = useUserStore()
+
+
+    // Form สำหรับ Basic Info
+    const basicForm = useForm<BasicInfoFormValue>({
+        resolver: zodResolver(BasicInfoSchema),
+        defaultValues: {
+            first_name: "",
+            last_name: "",
+        }
+    })
+
+    // Form สำหรับ Employee Info
+    const employeeForm = useForm<EmployeeInfoFormValue>({
+        resolver: zodResolver(EmployeeInfoSchema),
+        defaultValues: {
+            department_name: "",
+            job_title_name: "",
+            grade: "",
+        }
+    })
 
     useEffect(() => {
         if (user) {
-            setBasicInfo({
+            // Set ค่าให้ basic form
+            basicForm.reset({
                 first_name: user.user.first_name,
                 last_name: user.user.last_name,
-                email_address: user.user.email_address,
             })
-            setEmployeeInfo({
+
+            // Set ค่าให้ employee form
+            employeeForm.reset({
                 department_name: user.department.department_name,
                 job_title_name: user.job_title.job_title_name,
                 grade: user.grade || "",
             })
-            // Mock personal info - in real app, fetch from API
-            setPersonalInfo({
-                id_card: "1234567890123",
-                phone_number: "+1 (555) 123-4567",
-                date_of_birth: "1990-05-15",
-                gender: "Male",
-            })
-        }
-    }, [user])
 
-    const handleBasicInfoSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        setLoading(true)
-        try {
-            // Implement API call to update basic info
-            console.log("Updating basic info:", basicInfo)
-            await new Promise((resolve) => setTimeout(resolve, 1000))
-        } catch (error) {
-            console.error("Error updating basic info:", error)
-        } finally {
-            setLoading(false)
+            setValidationErrors([])
         }
+    }, [user, basicForm, employeeForm])
+
+    // useEffect เพื่อ validate แบบ real-time
+    useEffect(() => {
+        const subscription = basicForm.watch((value, { name, type }) => {
+            if (type === 'change') {
+                // Validate เมื่อมีการเปลี่ยนแปลงค่า
+                const result = BasicInfoSchema.safeParse(value)
+                if (!result.success) {
+                    const errors = result.error.errors.map(err => `${err.path.join('.')}: ${err.message}`)
+                    setValidationErrors(errors)
+                } else {
+                    setValidationErrors([])
+                }
+            }
+        })
+        return () => subscription.unsubscribe()
+    }, [basicForm])
+
+    useEffect(() => {
+        const subscription = employeeForm.watch((value, { name, type }) => {
+            if (type === 'change') {
+                // Validate เมื่อมีการเปลี่ยนแปลงค่า
+                const result = EmployeeInfoSchema.safeParse(value)
+                if (!result.success) {
+                    const errors = result.error.errors.map(err => `${err.path.join('.')}: ${err.message}`)
+                    setValidationErrors(errors)
+                } else {
+                    setValidationErrors([])
+                }
+            }
+        })
+        return () => subscription.unsubscribe()
+    }, [employeeForm])
+
+    // Handle submit สำหรับ Basic Info
+    const handleBasicInfoSubmit = async (data: BasicInfoFormValue) => {
+        if (user?.user_id) {
+            setLoading(true)
+            try {
+                // Validate ด้วย Zod ก่อน submit
+                const validatedData = BasicInfoSchema.parse(data)
+
+                // Update main form values
+                basicForm.setValue('first_name', validatedData.first_name)
+                basicForm.setValue('last_name', validatedData.last_name)
+
+                // console.log("Updating basic info:", validatedData)
+
+                editeUser(user.user_id, validatedData)
+
+                // Show success message or close dialog
+            } catch (error) {
+                if (error instanceof z.ZodError) {
+                    const errors = error.errors.map(err => `${err.path.join('.')}: ${err.message}`)
+                    setValidationErrors(errors)
+                } else {
+                    console.error("Error updating basic info:", error)
+                }
+            } finally {
+                setLoading(false)
+            }
+        }
+
+
     }
 
-    const handleEmployeeInfoSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        setLoading(true)
-        try {
-            // Implement API call to update employee info
-            console.log("Updating employee info:", employeeInfo)
-            await new Promise((resolve) => setTimeout(resolve, 1000))
-        } catch (error) {
-            console.error("Error updating employee info:", error)
-        } finally {
-            setLoading(false)
-        }
-    }
+    // Handle submit สำหรับ Employee Info
+    const handleEmployeeInfoSubmit = async (data: EmployeeInfoFormValue) => {
+        if (user?.user_id) {
+            setLoading(true)
+            try {
+                // Validate ด้วย Zod ก่อน submit
+                const validatedData = EmployeeInfoSchema.parse(data)
 
-    const handlePersonalInfoSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        setLoading(true)
-        try {
-            // Implement API call to update personal info
-            console.log("Updating personal info:", personalInfo)
-            await new Promise((resolve) => setTimeout(resolve, 1000))
-        } catch (error) {
-            console.error("Error updating personal info:", error)
-        } finally {
-            setLoading(false)
+                // Update main form values
+                employeeForm.setValue('department_name', validatedData.department_name)
+                employeeForm.setValue('job_title_name', validatedData.job_title_name)
+                employeeForm.setValue('grade', validatedData.grade || "")
+
+                // console.log("Updating employee info:", validatedData)
+            
+                editeUser(user.user_id, validatedData)
+
+                // Show success message or close dialog
+            } catch (error) {
+                if (error instanceof z.ZodError) {
+                    const errors = error.errors.map(err => `${err.path.join('.')}: ${err.message}`)
+                    setValidationErrors(errors)
+                } else {
+                    console.error("Error updating employee info:", error)
+                }
+            } finally {
+                setLoading(false)
+            }
         }
+
     }
 
     if (!user) return null
@@ -134,6 +178,19 @@ export function UserEditDialog({ user, departments, open, onOpenChange }: UserEd
                     <DialogTitle>Edit User</DialogTitle>
                     <DialogDescription>Update user information and settings</DialogDescription>
                 </DialogHeader>
+
+                {/* แสดง validation errors */}
+                {validationErrors.length > 0 && (
+                    <Alert variant="destructive">
+                        <AlertDescription>
+                            <ul className="list-disc list-inside">
+                                {validationErrors.map((error, index) => (
+                                    <li key={index}>{error}</li>
+                                ))}
+                            </ul>
+                        </AlertDescription>
+                    </Alert>
+                )}
 
                 <Tabs defaultValue="basic" className="w-full">
                     <TabsList className="grid w-full grid-cols-2">
@@ -148,36 +205,28 @@ export function UserEditDialog({ user, departments, open, onOpenChange }: UserEd
                                 <CardDescription>Update basic user details</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <form onSubmit={handleBasicInfoSubmit} className="space-y-4">
+                                <form onSubmit={basicForm.handleSubmit(handleBasicInfoSubmit)} className="space-y-4">
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-2">
                                             <Label htmlFor="first_name">First Name</Label>
                                             <Input
+                                                {...basicForm.register('first_name')}
                                                 id="first_name"
-                                                value={basicInfo.first_name}
-                                                onChange={(e) => setBasicInfo((prev) => ({ ...prev, first_name: e.target.value }))}
-                                                required
                                             />
+                                            {basicForm.formState.errors.first_name && (
+                                                <p className="text-red-500 text-sm">{basicForm.formState.errors.first_name.message}</p>
+                                            )}
                                         </div>
                                         <div className="space-y-2">
                                             <Label htmlFor="last_name">Last Name</Label>
                                             <Input
+                                                {...basicForm.register('last_name')}
                                                 id="last_name"
-                                                value={basicInfo.last_name}
-                                                onChange={(e) => setBasicInfo((prev) => ({ ...prev, last_name: e.target.value }))}
-                                                required
                                             />
+                                            {basicForm.formState.errors.last_name && (
+                                                <p className="text-red-500 text-sm">{basicForm.formState.errors.last_name.message}</p>
+                                            )}
                                         </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="email_address">Email Address</Label>
-                                        <Input
-                                            id="email_address"
-                                            type="email"
-                                            value={basicInfo.email_address}
-                                            onChange={(e) => setBasicInfo((prev) => ({ ...prev, email_address: e.target.value }))}
-                                            required
-                                        />
                                     </div>
                                     <Button type="submit" disabled={loading}>
                                         {loading ? "Updating..." : "Update Basic Info"}
@@ -194,54 +243,68 @@ export function UserEditDialog({ user, departments, open, onOpenChange }: UserEd
                                 <CardDescription>Update work-related details</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <form onSubmit={handleEmployeeInfoSubmit} className="space-y-4">
+                                <form onSubmit={employeeForm.handleSubmit(handleEmployeeInfoSubmit)} className="space-y-4">
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-2">
                                             <Label htmlFor="department_name">Department</Label>
-                                            <Select
-                                                value={employeeInfo.department_name}
-                                                onValueChange={(value) => setEmployeeInfo((prev) => ({ ...prev, department_name: value }))}
-                                            >
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Select department" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {departments.map((dept) => (
-                                                        <SelectItem key={dept.department_id} value={dept.department_name}>
-                                                            {dept.department_name}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
+                                            <Controller
+                                                name="department_name"
+                                                control={employeeForm.control}
+                                                render={({ field }) => (
+                                                    <Select value={field.value} onValueChange={field.onChange}>
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Select department" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {departments.map((dept) => (
+                                                                <SelectItem key={dept.department_id} value={dept.department_name}>
+                                                                    {dept.department_name}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                )}
+                                            />
+                                            {employeeForm.formState.errors.department_name && (
+                                                <p className="text-red-500 text-sm">{employeeForm.formState.errors.department_name.message}</p>
+                                            )}
                                         </div>
                                         <div className="space-y-2">
                                             <Label htmlFor="job_title_name">Job Title</Label>
                                             <Input
+                                                {...employeeForm.register('job_title_name')}
                                                 id="job_title_name"
-                                                value={employeeInfo.job_title_name}
-                                                onChange={(e) => setEmployeeInfo((prev) => ({ ...prev, job_title_name: e.target.value }))}
-                                                required
                                             />
+                                            {employeeForm.formState.errors.job_title_name && (
+                                                <p className="text-red-500 text-sm">{employeeForm.formState.errors.job_title_name.message}</p>
+                                            )}
                                         </div>
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="grade">Grade</Label>
-                                        <Select
-                                            value={employeeInfo.grade}
-                                            onValueChange={(value) => setEmployeeInfo((prev) => ({ ...prev, grade: value }))}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select grade" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="Junior">Junior</SelectItem>
-                                                <SelectItem value="Mid">Mid</SelectItem>
-                                                <SelectItem value="Senior">Senior</SelectItem>
-                                                <SelectItem value="Lead">Lead</SelectItem>
-                                                <SelectItem value="Manager">Manager</SelectItem>
-                                                <SelectItem value="Director">Director</SelectItem>
-                                            </SelectContent>
-                                        </Select>
+                                        <Controller
+                                            name="grade"
+                                            control={employeeForm.control}
+                                            render={({ field }) => (
+                                                <Select value={field.value} onValueChange={field.onChange}>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Select grade" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="1">1</SelectItem>
+                                                        <SelectItem value="2">2</SelectItem>
+                                                        <SelectItem value="3">3</SelectItem>
+                                                        <SelectItem value="4">4</SelectItem>
+                                                        <SelectItem value="5">5</SelectItem>
+                                                        <SelectItem value="6">6</SelectItem>
+                                                        <SelectItem value="7">7</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            )}
+                                        />
+                                        {employeeForm.formState.errors.grade && (
+                                            <p className="text-red-500 text-sm">{employeeForm.formState.errors.grade.message}</p>
+                                        )}
                                     </div>
                                     <Button type="submit" disabled={loading}>
                                         {loading ? "Updating..." : "Update Employee Info"}
