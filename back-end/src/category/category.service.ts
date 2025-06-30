@@ -95,7 +95,29 @@ export class CategoryService {
   }
 
   async findAll(): Promise<Category[]> {
-    return this.prisma.category.findMany();
+    const categories = await this.prisma.category.findMany({
+      include: {
+        pic: {
+          select: {
+            user_id: true,
+            user: {
+              select: {
+                first_name: true,
+                last_name: true,
+                email_address: true
+              }
+            },
+            assigned_by_user_id: true
+          },
+        },
+        _count: {
+          select: {
+            items: true
+          }
+        }
+      },
+    });
+    return categories;
   }
 
   async findOne(category_id: string): Promise<Category> {
@@ -196,17 +218,27 @@ export class CategoryService {
     });
   }
 
-  async findAllPics(): Promise<Pic[]> {
-    return this.prisma.pic.findMany({
-      include: {
+  async findAllPics() {
+    const PICs = await this.prisma.pic.findMany({
+      select: {
+        user_id: true,
+        user: {
+          select: {
+            first_name: true,
+            last_name: true,
+            email_address: true
+          }
+        },
+        assigned_by_user_id: true,
         categories: {
           select: {
             category_id: true,
-            category_name: true,
+            category_name: true
           }
         }
       }
-    });
+    })
+    return PICs
   }
 
   async removePic(pic_id: string): Promise<string> {

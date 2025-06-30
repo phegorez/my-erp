@@ -465,7 +465,6 @@ export class UserService {
       }
 
       if (userDto.department_name) {
-        // Only add department if Prisma schema allows nested updates for department
         (editedData.Employee.update as EmployeeUpdateInput).department = {
           connectOrCreate: {
             where: {

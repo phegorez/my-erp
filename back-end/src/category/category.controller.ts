@@ -65,7 +65,7 @@ export class PicController {
   constructor(private readonly categoryService: CategoryService) { }
 
   @Get()
-  async getAllPic(): Promise<Pic[] | string> {
+  async getAllPic() {
     return this.categoryService.findAllPics();
   }
 

@@ -114,3 +114,38 @@ export interface formUserEdit {
     }
     grade?: string
 }
+
+
+// category & pic
+export interface Category {
+    category_id: string
+    category_name: string
+    created_at: string
+    updated_at: string
+    pic?: {
+        user_id: string
+        user: {
+            first_name: string
+            last_name: string
+            email_address: string
+        }
+        assigned_by_user_id: string
+    }
+    _count?: {
+        items: number
+    }
+}
+
+export interface Pic {
+    user_id: string
+    user: {
+        first_name: string
+        last_name: string
+        email_address: string
+    }
+    assigned_by_user_id: string
+    categories: {
+        category_id: string
+        category_name: string
+    }[]
+}

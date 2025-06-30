@@ -443,13 +443,12 @@ export const deleteItem = async (itemId: string) => {
  */
 export const fetchAllCategories = async () => {
   try {
-    const token = localStorage.getItem('authToken');
-    const response = await apiClient.get('/categories', {
-      headers: { /* Authorization: `Bearer ${token}` */ },
-    });
+    const response = await apiClient.get('/categories');
     return response.data;
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response) throw error.response.data;
+    if (axios.isAxiosError(error) && error.response) {
+      throw error.response.data;
+    }
     throw error;
   }
 };
@@ -547,14 +546,13 @@ export const assignPicToCategory = async (categoryId: string, picUserId: string)
  */
 export const fetchAllPics = async () => {
   try {
-    const token = localStorage.getItem('authToken');
-    // Adjust endpoint if it's different, e.g., /users?role=pic or a dedicated /pics endpoint
-    const response = await apiClient.get('/users?role=pic', { // Assuming backend supports filtering users by role
-      headers: { /* Authorization: `Bearer ${token}` */ },
-    });
+    const response = await apiClient.get('/pics');
+    // console.log('response', response.data)
     return response.data;
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response) throw error.response.data;
+    if (axios.isAxiosError(error) && error.response) {
+      throw error.response.data;
+    }
     throw error;
   }
 };
