@@ -1,26 +1,97 @@
-import { fetchAllCategories, fetchAllPics } from '@/services/api';
-import { Category, Pic } from '@/types'
+import { createCategory, deleteCategory, fetchAllCategories, fetchAllPics, getMyCategory, unAssignPic, updateCategory } from '@/services/api';
+import { AddNewCategory, Category, MyCategory, Pic } from '@/types'
 import { AxiosError } from 'axios';
 import { create } from 'zustand'
 
 interface UserState {
     categories: Category[];
+    myCategories: MyCategory[];
     pics: Pic[];
     isLoading: boolean;
     error: string | null;
     lastFetched: null | number;
+    addNewCategory: (newCategory: AddNewCategory) => Promise<boolean>;
     fetchAllCategories: () => Promise<void>;
+    updateCategory: (categoryId: string, categoryName: string) => Promise<void>;
+    deleteCategory: (categoryId: string) => Promise<void>;
     fetchAllPics: () => Promise<void>
+    getMyCategory: () => Promise<void>;
+    unAssignPic: (picId: string) => Promise<void>;
 }
 
 const CACHE_EXPIRATION_TIME = 60 * 60 * 1000;
 
 export const useCategory = create<UserState>((set) => ({
     categories: [],
+    myCategories: [],
     pics: [],
     isLoading: false,
     error: null,
     lastFetched: null,
+
+    addNewCategory: async (newCategory: AddNewCategory) => {
+        set({ isLoading: true, error: null });
+        try {
+            const response = await createCategory(newCategory);
+            if (response.ok) {
+                set({ isLoading: false });
+                return response.ok
+            }
+        } catch (error: any) {
+            console.error("Failed to add new user:", error);
+            let errorMessage = "An unknown error occurred.";
+            if (error instanceof AxiosError && error.response) {
+                errorMessage = error.response.data.message || error.response.data.detail || error.message;
+            } else if (error instanceof Error) {
+                errorMessage = error.message;
+            }
+            set({ error: errorMessage, isLoading: false });
+        }
+    },
+
+    updateCategory: async (categoryId: string, categoryName: string) => {
+        set({ isLoading: true, error: null });
+        try {
+            const response = await updateCategory(categoryId, categoryName);
+            if (response.ok) {
+                set({ isLoading: false });
+                return response.ok;
+            } else {
+                throw new Error("Failed to update category");
+            }
+        } catch (error: any) {
+            console.error("Failed to update category:", error);
+            let errorMessage = "An unknown error occurred.";
+            if (error instanceof AxiosError && error.response) {
+                errorMessage = error.response.data.message || error.response.data.detail || error.message;
+            } else if (error instanceof Error) {
+                errorMessage = error.message;
+            }
+            set({ error: errorMessage, isLoading: false });
+        }
+    },
+
+    deleteCategory: async (categoryId: string) => {
+        set({ isLoading: true, error: null });
+        try {
+            const response = await deleteCategory(categoryId);
+            if (response.ok) {
+                set({ isLoading: false });
+                return response.message;
+            } else {
+                throw new Error("Failed to delete category");
+            }
+        } catch (error: any) {
+            console.error("Failed to delete category:", error);
+            let errorMessage = "An unknown error occurred.";
+            if (error instanceof AxiosError && error.response) {
+                errorMessage = error.response.data.message || error.response.data.detail || error.message;
+            } else if (error instanceof Error) {
+                errorMessage = error.message;
+            }
+            set({ error: errorMessage, isLoading: false });
+        }
+    },
 
     fetchAllCategories: async () => {
         set({ isLoading: true, error: null });
@@ -55,4 +126,44 @@ export const useCategory = create<UserState>((set) => ({
             set({ error: errorMessage, isLoading: false, pics: [] });
         }
     },
+
+    getMyCategory: async () => {
+        set({ isLoading: true, error: null });
+        try {
+            const response = await getMyCategory();
+            // console.log('response', response.data)
+            set({ myCategories: response.data, isLoading: false });
+        } catch (error: any) {
+            console.error("Failed to fetch my categories:", error);
+            let errorMessage = "An unknown error occurred.";
+            if (error instanceof AxiosError && error.response) {
+                errorMessage = error.response.data.message || error.response.data.detail || error.message;
+            } else if (error instanceof Error) {
+                errorMessage = error.message;
+            }
+            set({ error: errorMessage, isLoading: false, myCategories: [] });
+        }
+    },
+
+    unAssignPic: async (user_id: string) => {
+        set({ isLoading: true, error: null });
+        try {
+            const response = await unAssignPic(user_id);
+            if (response.ok) {
+                set({ isLoading: false });
+                return response.message;
+            } else {
+                throw new Error("Failed to unassign PIC");
+            }
+        } catch (error: any) {
+            console.error("Failed to unassign PIC:", error);
+            let errorMessage = "An unknown error occurred.";
+            if (error instanceof AxiosError && error.response) {
+                errorMessage = error.response.data.message || error.response.data.detail || error.message;
+            } else if (error instanceof Error) {
+                errorMessage = error.message;
+            }
+            set({ error: errorMessage, isLoading: false });
+        }
+    }
 }));

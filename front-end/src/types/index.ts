@@ -149,3 +149,26 @@ export interface Pic {
         category_name: string
     }[]
 }
+
+export interface AddNewCategory {
+    category_name: string;
+    assigned_pic: string;
+}
+
+export interface MyCategory {
+    category_id: string
+    category_name: string
+    created_at: string
+    updated_at: string
+    _count: {
+        items: number
+    }
+    items: {
+        item_id: string
+        item_name: string
+        item_type: string
+        is_available: boolean
+        serial_number?: string
+        imei?: string
+    }[]
+}

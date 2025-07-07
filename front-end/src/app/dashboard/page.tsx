@@ -49,6 +49,7 @@ export default function DashboardPage() {
     { href: "/items", label: "Manage Items", roles: ['admin', 'super_admin', 'pic'] },
     { href: "/categories", label: "Manage Categories", roles: ['admin', 'super_admin'] },
     { href: "/requests/approvals", label: "Approve Requests", roles: ['manager', 'pic', 'admin', 'super_admin'] },
+    { href: "/my-categories", label: "My Category", roles: ['pic'] },
     // Add more links as needed
   ];
 

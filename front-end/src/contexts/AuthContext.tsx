@@ -53,6 +53,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const res = await fetchMyProfile();
       if (res.ok) {
+        // console.log('checkAuth res', res.data);
         setUser(res.data);
         setIsAuthenticated(true);
         return true

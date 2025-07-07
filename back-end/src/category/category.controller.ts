@@ -14,7 +14,7 @@ export class CategoryController {
   constructor(private readonly categoryService: CategoryService) { }
 
   @Post()
-  async create(@GetUser() user: { sub: string; roles: string[] }, @Body() dto: CreateCategoryDto): Promise<Category | string> {
+  async create(@GetUser() user: { sub: string; roles: string[] }, @Body() dto: CreateCategoryDto): Promise<Category | { data: Category; ok: boolean }> {
     const { sub, roles } = user
     if (roles.includes('super_admin') || roles.includes('admin')) {
       return this.categoryService.create(sub, dto)
@@ -33,10 +33,10 @@ export class CategoryController {
   }
 
   @Patch(':id')
-  async update(@GetUser() user: { sub: string; roles: string[] }, @Param('id') id: string, @Body() dto: UpdateCategoryDto): Promise<Category> {
+  async update(@GetUser() user: { sub: string; roles: string[] }, @Param('id') id: string, @Body() dto: UpdateCategoryDto): Promise<Category | { data: Category; ok: boolean }> {
     const { sub, roles } = user
-    if (roles.includes('pic')) {
-      return this.categoryService.update(sub, id, dto)
+    if (roles.includes('pic') || roles.includes('super_admin') || roles.includes('admin')) {
+      return this.categoryService.update(sub, roles, id, dto)
     }
     throw new ForbiddenException('Permission denied: Your are not PIC')
   }
@@ -51,7 +51,7 @@ export class CategoryController {
   }
 
   @Delete(':id')
-  async remove(@GetUser('roles') roles: string[], @Param('id') id: string): Promise<string> {
+  async remove(@GetUser('roles') roles: string[], @Param('id') id: string): Promise<string | { message: string; ok: boolean }> {
     if (roles.includes('super_admin') || roles.includes('admin')) {
       return this.categoryService.remove(id);
     }
@@ -69,8 +69,17 @@ export class PicController {
     return this.categoryService.findAllPics();
   }
 
+  @Get('my-categories')
+  async getMyCategories(@GetUser() user: { sub: string; roles: string[] }): Promise<Category[] | { data: Category[]; ok: boolean }> {
+    const { sub, roles } = user;
+    if (roles.includes('pic')) {
+      return this.categoryService.getMyCategories(sub);
+    }
+    throw new ForbiddenException('Permission denied: Your are not PIC');
+  }
+
   @Delete(':id')
-  async removePic(@GetUser('roles') roles: string[], @Param('id') id: string): Promise<string> {
+  async removePic(@GetUser('roles') roles: string[], @Param('id') id: string): Promise<string | { message: string; ok: boolean }> {
     if (roles.includes('super_admin') || roles.includes('admin')) {
       return this.categoryService.removePic(id);
     }

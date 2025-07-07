@@ -33,7 +33,7 @@ export default function UsersPage() {
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
     const [loading, setLoading] = useState(true)
 
-    const { fetchAllUsers, getDepartments, deleteUser, departments, users } = useUserStore()
+    const { fetchAllUsers, getDepartments, deleteUser, departments, users } = useUserStore();
 
     useEffect(() => {
 

@@ -1,14 +1,14 @@
 import { Injectable, NotAcceptableException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service'; // Adjust path as needed
 import { CreateCategoryDto, UpdateCategoryDto } from './dto';
-import { Category, Pic } from '@prisma/client';
+import { Category, Pic, Role } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class CategoryService {
   constructor(private prisma: PrismaService) { }
 
-  async create(admin_id: string, dto: CreateCategoryDto): Promise<Category> {
+  async create(admin_id: string, dto: CreateCategoryDto): Promise<Category | { data: Category; ok: boolean }> {
     const { category_name, assigned_pic } = dto;
     // validate dto
     if (!category_name || !assigned_pic) {
@@ -83,7 +83,7 @@ export class CategoryService {
         // step 3 return the created category
         return newCategory;
       })
-      return result;
+      return { data: result, ok: true };
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
@@ -130,7 +130,7 @@ export class CategoryService {
     return category;
   }
 
-  async update(pic_id: string, category_id: string, dto: UpdateCategoryDto): Promise<Category> {
+  async update(pic_id: string, roles: string[], category_id: string, dto: UpdateCategoryDto): Promise<Category | { data: Category; ok: boolean }> {
 
     // check this user is owner of this category
     const category = await this.prisma.category.findUnique({
@@ -138,25 +138,30 @@ export class CategoryService {
       include: { pic: true } // Include the pic relation to check ownership
     });
 
-    if (category?.pic?.user_id !== pic_id) {
-      throw new NotAcceptableException(`You are not allowed to edit this category`);
-    }
+    if (category?.pic?.user_id === pic_id || roles.includes('super_admin') || roles.includes('admin')) {
 
-    try {
-      await this.findOne(category_id) // Ensure category exists
-      const editedCategory = await this.prisma.category.update({
-        where: { category_id },
-        data: {
-          category_name: dto.category_name
+      try {
+        await this.findOne(category_id) // Ensure category exists
+        const editedCategory = await this.prisma.category.update({
+          where: { category_id },
+          data: {
+            category_name: dto.category_name
+          }
+        })
+        return {
+          data: editedCategory,
+          ok: true
         }
-      })
-      return editedCategory
-    } catch (error) {
-      throw error
+      } catch (error) {
+        throw error
+      }
     }
+    throw new NotAcceptableException(`You are not allowed to edit this category`);
   }
 
-  async remove(category_id: string): Promise<string> {
+
+
+  async remove(category_id: string): Promise<string | { message: string; ok: boolean }> {
     try {
       const deletedCategroy = await this.findOne(category_id) // Ensure category exists 
       await this.prisma.category.delete({
@@ -164,7 +169,10 @@ export class CategoryService {
           category_id
         }
       })
-      return `Delete Category : ${deletedCategroy.category_name} successful`
+      return {
+        message: `Delete category with ID : ${deletedCategroy.category_name} successful`,
+        ok: true
+      }
     } catch (error) {
       throw error
     }
@@ -241,23 +249,91 @@ export class CategoryService {
     return PICs
   }
 
-  async removePic(pic_id: string): Promise<string> {
+  async getMyCategories(pic_id: string): Promise<Category[] | { data: Category[]; ok: boolean }> {
+    // Check if the pic exists
+    const result = await this.prisma.pic.findUnique({
+      where: { user_id: pic_id },
+      include: {
+        categories: {
+          select: {
+            category_id: true,
+            category_name: true,
+            created_at: true,
+            updated_at: true,
+            picId: true,
+            _count: {
+              select: {
+                items: true, // Count of items in the category
+              },
+            },
+            items: {
+              select: {
+                item_id: true,
+                item_name: true,
+                item_type: true,
+                is_available: true,
+                serial_number: true,
+                imei: true,
+              },
+            }
+          }
+        }, // Include categories related to the pic
+      },
+    });
+
+    if (!result) {
+      throw new NotFoundException(`Pic with ID "${pic_id}" not found`);
+    }
+
+    // Return the categories associated with the pic
+    return {
+      data: result.categories,
+      ok: true,
+    }
+  }
+
+  async removePic(user_id: string): Promise<string | { message: string; ok: boolean }> {
     try {
-      const deletedPic = await this.prisma.pic.findUnique({
-        where: { user_id: pic_id },
-      });
+      const result = await this.prisma.$transaction(async (tx) => {
+        const picToDelete = await tx.pic.findUnique({
+          where: { user_id },
+          select: { user_id: true }
+        })
 
-      if (!deletedPic) {
-        throw new NotFoundException(`Pic with ID "${pic_id}" not found`);
-      }
+        if (!picToDelete) {
+          throw new NotFoundException(`Pic with ID "${user_id}" not found`);
+        }
 
-      await this.prisma.pic.delete({
-        where: { user_id: pic_id },
-      });
+        const picRole = await tx.role.findUnique({
+          where: { role_name: 'pic' },
+          select: { role_id: true }
+        })
 
-      return `Delete Pic with ID : ${pic_id} successful`;
+        if (!picRole) {
+          throw new NotFoundException(`Role 'pic' not found`);
+        }
+
+        // Delete the pic
+        await tx.pic.delete({
+          where: { user_id: picToDelete.user_id }
+        })
+
+        const deletedUserRole = await tx.userRole.deleteMany({
+          where: {
+            user_id: picToDelete.user_id,
+            role_id: picRole.role_id
+          }
+        })
+
+        return {
+          message: `Delete pic with ID : ${user_id} successful. Deleted ${deletedUserRole.count} UserRole entries for user ${picToDelete.user_id} with role 'Pic'.`,
+          ok: true,
+        };
+      })
+      return result;
     } catch (error) {
       throw error;
     }
   }
+
 }

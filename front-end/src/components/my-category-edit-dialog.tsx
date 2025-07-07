@@ -8,32 +8,23 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { useCategory } from "@/stores/categoryStore"
 
-interface Category {
+interface MyCategory {
     category_id: string
     category_name: string
-    pic?: {
-        user_id: string
-        user: {
-            first_name: string
-            last_name: string
-            email_address: string
-        }
-    }
+    created_at: string
+    updated_at: string
 }
 
-interface CategoryEditDialogProps {
-    category: Category | null
+interface MyCategoryEditDialogProps {
+    category: MyCategory | null
     open: boolean
     onOpenChange: (open: boolean) => void
 }
 
-export function CategoryEditDialog({ category, open, onOpenChange }: CategoryEditDialogProps) {
+export function MyCategoryEditDialog({ category, open, onOpenChange }: MyCategoryEditDialogProps) {
     const [categoryName, setCategoryName] = useState("")
     const [loading, setLoading] = useState(false)
-
-    const { updateCategory, fetchAllCategories } = useCategory()
 
     useEffect(() => {
         if (category) {
@@ -45,16 +36,18 @@ export function CategoryEditDialog({ category, open, onOpenChange }: CategoryEdi
         e.preventDefault()
         setLoading(true)
 
-        if (category) {
-            try {
-                await updateCategory(category.category_id, categoryName)
-                await fetchAllCategories()
-                onOpenChange(false)
-            } catch (error) {
-                console.error("Error updating category:", error)
-            } finally {
-                setLoading(false)
-            }
+        try {
+            // Implement API call to update category
+            console.log("Updating my category:", { category_id: category?.category_id, category_name: categoryName })
+
+            // Simulate API call
+            await new Promise((resolve) => setTimeout(resolve, 1000))
+
+            onOpenChange(false)
+        } catch (error) {
+            console.error("Error updating category:", error)
+        } finally {
+            setLoading(false)
         }
     }
 
@@ -66,7 +59,7 @@ export function CategoryEditDialog({ category, open, onOpenChange }: CategoryEdi
                 <DialogHeader>
                     <DialogTitle>Edit Category</DialogTitle>
                     <DialogDescription>
-                        Update category information. Only PICs can edit their assigned categories.
+                        Update your category information. Only you can edit this category as the assigned PIC.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -87,18 +80,24 @@ export function CategoryEditDialog({ category, open, onOpenChange }: CategoryEdi
                                 />
                             </div>
 
-                            {category.pic && (
-                                <div className="bg-gray-50 p-4 rounded-lg">
-                                    <h4 className="font-medium text-gray-900 mb-2">Current PIC</h4>
-                                    <p className="text-sm text-gray-700">
-                                        {category.pic.user.first_name} {category.pic.user.last_name}
-                                    </p>
-                                    <p className="text-sm text-gray-500">{category.pic.user.email_address}</p>
-                                    <p className="text-xs text-gray-500 mt-2">
-                                        Note: Only the assigned PIC can edit this category. To change the PIC, use the "Assign PIC" action.
-                                    </p>
+                            <div className="bg-blue-50 p-4 rounded-lg">
+                                <h4 className="font-medium text-blue-900 mb-2">Category Information</h4>
+                                <div className="text-sm text-blue-800 space-y-1">
+                                    <p>Category ID: {category.category_id}</p>
+                                    <p>Created: {new Date(category.created_at).toLocaleDateString()}</p>
+                                    <p>Last Updated: {new Date(category.updated_at).toLocaleDateString()}</p>
                                 </div>
-                            )}
+                            </div>
+
+                            <div className="bg-green-50 p-4 rounded-lg">
+                                <h4 className="font-medium text-green-900 mb-2">Your PIC Responsibilities</h4>
+                                <ul className="text-sm text-green-800 space-y-1">
+                                    <li>• Manage all items within this category</li>
+                                    <li>• Update category information</li>
+                                    <li>• Monitor item availability and assignments</li>
+                                    <li>• Approve item requests and returns</li>
+                                </ul>
+                            </div>
                         </CardContent>
                     </Card>
 

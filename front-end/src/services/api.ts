@@ -474,15 +474,14 @@ export const fetchCategoryById = async (categoryId: string) => {
  * Creates a new category.
  * @param categoryData - The data for the new category (e.g., { name: string, pic_user_id?: string }).
  */
-export const createCategory = async (categoryData: any) => {
+export const createCategory = async (newCategory: any) => {
   try {
-    const token = localStorage.getItem('authToken');
-    const response = await apiClient.post('/categories', categoryData, {
-      headers: { /* Authorization: `Bearer ${token}` */ },
-    });
+    const response = await apiClient.post('/categories', newCategory);
     return response.data;
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response) throw error.response.data;
+    if (axios.isAxiosError(error) && error.response) {
+      throw error.response.data;
+    }
     throw error;
   }
 };
@@ -490,17 +489,18 @@ export const createCategory = async (categoryData: any) => {
 /**
  * Updates an existing category.
  * @param categoryId - The ID of the category to update.
- * @param categoryData - The new data for the category (e.g., { name: string }).
  */
-export const updateCategory = async (categoryId: string, categoryData: any) => {
+export const updateCategory = async (categoryId: string, category_name: string) => {
   try {
-    const token = localStorage.getItem('authToken');
-    const response = await apiClient.put(`/categories/${categoryId}`, categoryData, {
-      headers: { /* Authorization: `Bearer ${token}` */ },
+    // Example: Get token from localStorage
+    const response = await apiClient.patch(`/categories/${categoryId}`, {
+      category_name
     });
     return response.data;
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response) throw error.response.data;
+    if (axios.isAxiosError(error) && error.response) {
+      throw error.response.data;
+    }
     throw error;
   }
 };
@@ -511,10 +511,7 @@ export const updateCategory = async (categoryId: string, categoryData: any) => {
  */
 export const deleteCategory = async (categoryId: string) => {
   try {
-    const token = localStorage.getItem('authToken');
-    const response = await apiClient.delete(`/categories/${categoryId}`, {
-      headers: { /* Authorization: `Bearer ${token}` */ },
-    });
+    const response = await apiClient.delete(`/categories/${categoryId}`);
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response) throw error.response.data;
@@ -556,6 +553,36 @@ export const fetchAllPics = async () => {
     throw error;
   }
 };
+
+export const getMyCategory = async () => {
+  try {
+    const response = await apiClient.get('/pics/my-categories');
+    if (!response.data.ok) {
+      throw new Error('Failed to fetch my categories');
+    }
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      throw error.response.data;
+    }
+    throw error;
+  }
+}
+
+export const unAssignPic = async (user_id: string) => {
+  try {
+    const response = await apiClient.delete(`/pics/${user_id}`);
+    if (!response.data.ok) {
+      throw new Error('Failed to unassign PIC');
+    }
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      throw error.response.data;
+    }
+    throw error;
+  }
+}
 
 
 export default apiClient;

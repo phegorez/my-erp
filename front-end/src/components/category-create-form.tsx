@@ -2,12 +2,14 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useCategory } from "@/stores/categoryStore"
+import { useUserStore } from "@/stores/userStore"
 
 interface CategoryCreateFormProps {
     onSuccess: () => void
@@ -20,24 +22,28 @@ export function CategoryCreateForm({ onSuccess }: CategoryCreateFormProps) {
     })
     const [loading, setLoading] = useState(false)
 
-    // Mock users that can be assigned as PICs
-    const availableUsers = [
-        { user_id: "user1", name: "John Smith", email: "john.smith@company.com" },
-        { user_id: "user2", name: "Sarah Johnson", email: "sarah.johnson@company.com" },
-        { user_id: "user3", name: "Mike Davis", email: "mike.davis@company.com" },
-        { user_id: "user4", name: "Emily Brown", email: "emily.brown@company.com" },
-    ]
+    const { fetchAllCategories, addNewCategory } = useCategory()
+    const { fetchAllUsers, users } = useUserStore();
+
+    useEffect(() => {
+
+        fetchAllUsers()
+
+        setTimeout(() => {
+            setLoading(false)
+        }, 1000)
+    }, [])
 
     const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        setLoading(true)
-
         try {
-            // Implement API call to create category
+            setLoading(true)
             console.log("Creating category:", formData)
-
-            // Simulate API call
-            await new Promise((resolve) => setTimeout(resolve, 1000))
+            const handleAdd = await addNewCategory(formData)
+            if(handleAdd) {
+                await fetchAllCategories()
+                setLoading(false)
+                onSuccess()
+            }
 
             onSuccess()
         } catch (error) {
@@ -51,7 +57,7 @@ export function CategoryCreateForm({ onSuccess }: CategoryCreateFormProps) {
         setFormData((prev) => ({ ...prev, [field]: value }))
     }
 
-    const selectedUser = availableUsers.find((user) => user.user_id === formData.assigned_pic)
+    const selectedUser = users.find((user) => user.user_id === formData.assigned_pic)
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -79,11 +85,11 @@ export function CategoryCreateForm({ onSuccess }: CategoryCreateFormProps) {
                                 <SelectValue placeholder="Select a user to assign as PIC" />
                             </SelectTrigger>
                             <SelectContent>
-                                {availableUsers.map((user) => (
+                                {users.map((user) => (
                                     <SelectItem key={user.user_id} value={user.user_id}>
                                         <div className="flex flex-col">
-                                            <span>{user.name}</span>
-                                            <span className="text-sm text-muted-foreground">{user.email}</span>
+                                            <span>{user.user.first_name} {user.user.last_name}</span>
+                                            <span className="text-sm text-muted-foreground">{user.user.email_address}</span>
                                         </div>
                                     </SelectItem>
                                 ))}
@@ -91,7 +97,7 @@ export function CategoryCreateForm({ onSuccess }: CategoryCreateFormProps) {
                         </Select>
                         {selectedUser && (
                             <p className="text-sm text-muted-foreground">
-                                Selected: {selectedUser.name} ({selectedUser.email})
+                                Selected: {selectedUser.user.first_name} {selectedUser.user.last_name} ({selectedUser.user.email_address})
                             </p>
                         )}
                     </div>

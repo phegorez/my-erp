@@ -1,12 +1,14 @@
 "use client"
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Trash2, Mail, Building } from "lucide-react"
+import { Mail, Building, Trash2 } from "lucide-react"
+import { Button } from "./ui/button"
+import { useCategory } from "@/stores/categoryStore"
+
 
 interface Pic {
     user_id: string
@@ -29,10 +31,14 @@ interface PicManagementDialogProps {
 }
 
 export function PicManagementDialog({ pics, open, onOpenChange }: PicManagementDialogProps) {
+
+    const { unAssignPic, fetchAllPics } = useCategory()
+
     const handleRemovePic = async (picId: string) => {
         if (confirm("Are you sure you want to remove this PIC? This will unassign them from all categories.")) {
-            // Implement API call to remove PIC
-            console.log("Removing PIC:", picId)
+            const messageUnassign = await unAssignPic(picId)
+            alert(messageUnassign)
+            await fetchAllPics()
         }
     }
 
@@ -42,10 +48,14 @@ export function PicManagementDialog({ pics, open, onOpenChange }: PicManagementD
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>PIC Management</DialogTitle>
-                    <DialogDescription>Manage all Persons In Charge (PICs) and their category assignments</DialogDescription>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <DialogTitle>PIC Management</DialogTitle>
+                            <DialogDescription>Manage all Persons In Charge (PICs) and their category assignments</DialogDescription>
+                        </div>
+                    </div>
                 </DialogHeader>
 
                 <div className="space-y-6">
@@ -91,9 +101,11 @@ export function PicManagementDialog({ pics, open, onOpenChange }: PicManagementD
 
                     {/* PICs Table */}
                     <Card>
-                        <CardHeader>
-                            <CardTitle>All PICs</CardTitle>
-                            <CardDescription>List of all Persons In Charge and their category assignments</CardDescription>
+                        <CardHeader className="flex items-center justify-between space-y-0 pb-2">
+                            <div>
+                                <CardTitle>All PICs</CardTitle>
+                                <CardDescription>List of all Persons In Charge and their category assignments</CardDescription>
+                            </div>
                         </CardHeader>
                         <CardContent>
                             <Table>

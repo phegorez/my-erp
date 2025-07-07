@@ -10,6 +10,7 @@ import { withAuth } from '@/hoc/withAuth'; // Import HOC
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"; // Import Card
 import { Separator } from "@/components/ui/separator"; // Import Separator
 import { AuthUser } from "@/types";
+import { useAuth } from "@/contexts/AuthContext";
 
 
 // Helper component to display profile information items
@@ -22,35 +23,18 @@ const ProfileInfoItem: React.FC<{ label: string; value: string | undefined | nul
 
 function ProfilePageInternal() { // Renamed for HOC
   const router = useRouter();
-  const [profile, setProfile] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+
+  const { user, isAuthenticated } = useAuth()
 
   useEffect(() => {
     // Auth check is handled by withAuth HOC
-    const loadProfile = async () => {
-      setIsLoading(true); // Already true by default, but good practice if loadProfile is callable elsewhere
-      setError(null);
-      try {
-        // Check for auth token before fetching
-        const res = await fetchMyProfile();
-        if (!res.ok) throw new Error ("Not authenticated")
-        if (res.data) {
-          const data : AuthUser = res.data
-          setProfile(data);
-        }
-        
-      } catch (err: any) {
-        console.error("Failed to fetch profile:", err);
-        setError(err.message || "Could not load profile. Please try again later.");
-        if (err.status === 401 || err.status === 403) { // Example: handle auth errors
-          router.push('/auth/login');
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadProfile();
+    if (!isAuthenticated) {
+      // If not authenticated, redirect to login
+      router.push('/auth/login');
+      return;
+    }
+    setIsLoading(false);
   }, [router]);
 
   // isLoading from useAuth() could also be checked here if needed, but withAuth handles initial load.
@@ -62,16 +46,7 @@ function ProfilePageInternal() { // Renamed for HOC
     );
   }
 
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-150px)] text-center">
-        <p className="text-lg text-destructive mb-4">{error}</p>
-        <Button onClick={() => router.push('/dashboard')} variant="outline">Go to Dashboard</Button>
-      </div>
-    );
-  }
-
-  if (!profile) {
+  if (!user) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-150px)]">
         <p className="text-lg text-muted-foreground">No profile data found.</p>
@@ -80,9 +55,9 @@ function ProfilePageInternal() { // Renamed for HOC
     );
   }
 
-  const displayDateOfBirth = profile.Personal.date_of_birth ? new Date(profile.Personal.date_of_birth).toLocaleDateString() : null;
-  const displayUpdatedAt = profile.updated_at ? new Date(profile.updated_at).toLocaleString() : null;
-  const displayCreatedAt = profile.created_at ? new Date(profile.created_at).toLocaleString() : null;
+  const displayDateOfBirth = user.Personal.date_of_birth ? new Date(user.Personal.date_of_birth).toLocaleDateString() : null;
+  const displayUpdatedAt = user.updated_at ? new Date(user.updated_at).toLocaleString() : null;
+  const displayCreatedAt = user.created_at ? new Date(user.created_at).toLocaleString() : null;
 
   return (
     <div className="flex justify-center items-start py-12 px-4 sm:px-6 lg:px-8 min-h-[calc(100vh-100px)]">
@@ -93,16 +68,16 @@ function ProfilePageInternal() { // Renamed for HOC
         </CardHeader>
         <CardContent className="pt-6 space-y-5">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
-            <ProfileInfoItem label="First Name" value={profile.first_name} />
-            <ProfileInfoItem label="Last Name" value={profile.last_name} />
-            <ProfileInfoItem label="Email" value={profile.email_address} />
-            <ProfileInfoItem label="ID Card Number" value={profile.Personal.id_card} />
-            <ProfileInfoItem label="Phone Number" value={profile.Personal.phone_number} />
+            <ProfileInfoItem label="First Name" value={user.first_name} />
+            <ProfileInfoItem label="Last Name" value={user.last_name} />
+            <ProfileInfoItem label="Email" value={user.email_address} />
+            <ProfileInfoItem label="ID Card Number" value={user.Personal.id_card} />
+            <ProfileInfoItem label="Phone Number" value={user.Personal.phone_number} />
             <ProfileInfoItem label="Date of Birth" value={displayDateOfBirth} />
-            <ProfileInfoItem label="Gender" value={profile.Personal.gender} />
-            <ProfileInfoItem label="Department" value={profile.Employee.department.department_name} />
-            <ProfileInfoItem label="Job Title" value={profile.Employee.job_title.job_title_name} />
-            <ProfileInfoItem label="Grade" value={profile.Employee.grade} />
+            <ProfileInfoItem label="Gender" value={user.Personal.gender} />
+            <ProfileInfoItem label="Department" value={user.Employee.department.department_name} />
+            <ProfileInfoItem label="Job Title" value={user.Employee.job_title.job_title_name} />
+            <ProfileInfoItem label="Grade" value={user.Employee.grade} />
           </div>
           <Separator className="my-6" />
           <div className="text-sm text-muted-foreground space-y-1">

@@ -146,7 +146,7 @@ model UserRole {
   id      Int    @id @default(autoincrement())
   user    User   @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
   user_id String
-  role    Role   @relation(fields: [role_id], references: [role_id])
+  role    Role   @relation(fields: [role_id], references: [role_id], onDelete: Cascade)
   role_id String
 
   @@unique([user_id, role_id]) // user มีหลาย role ได้

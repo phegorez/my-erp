@@ -22,6 +22,7 @@ import { PicAssignDialog } from "@/components/pic-assign-dialog"
 import { PicManagementDialog } from "@/components/pic-management-dialog"
 import { useCategory } from "@/stores/categoryStore"
 import { Category, Pic } from "@/types"
+import { text } from "stream/consumers"
 
 
 export default function CategoriesPage() {
@@ -33,7 +34,7 @@ export default function CategoriesPage() {
   const [isPicManagementDialogOpen, setIsPicManagementDialogOpen] = useState(false)
   const [loading, setLoading] = useState(true)
 
-  const { fetchAllCategories, categories, fetchAllPics, pics } = useCategory()
+  const { fetchAllCategories, categories, fetchAllPics, pics, deleteCategory } = useCategory()
 
   useEffect(() => {
     fetchAllCategories()
@@ -67,7 +68,10 @@ export default function CategoriesPage() {
   const handleDeleteCategory = async (categoryId: string) => {
     if (confirm("Are you sure you want to delete this category? This action cannot be undone.")) {
       // Implement delete API call
-      // setCategories(categories.filter((category) => category.category_id !== categoryId))
+      const messageDelete = await deleteCategory(categoryId)
+      // Optionally, you can refetch categories after deletion
+      await fetchAllCategories()
+      alert(messageDelete)
     }
   }
 
@@ -94,7 +98,7 @@ export default function CategoriesPage() {
         <div className="flex space-x-2">
           <Button variant="outline" onClick={() => setIsPicManagementDialogOpen(true)}>
             <Users className="mr-2 h-4 w-4" />
-            Manage PICs
+            See All PICs
           </Button>
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
