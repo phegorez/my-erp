@@ -200,6 +200,7 @@ export default function CategoriesPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Category Name</TableHead>
+                <TableHead>Type</TableHead>
                 <TableHead>Person In Charge (PIC)</TableHead>
                 <TableHead>Items Count</TableHead>
                 <TableHead>Created Date</TableHead>
@@ -217,6 +218,17 @@ export default function CategoriesPage() {
                       <div>
                         <div className="font-medium">{category.category_name}</div>
                         <div className="text-sm text-muted-foreground">ID: {category.category_id}</div>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center space-x-3">
+                      <div>
+                        { category.item_type === "It_Assets" ? (
+                          <Badge variant="outline" className="text-xs">IT Assets</Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs">Non IT Assets</Badge>
+                        )}
                       </div>
                     </div>
                   </TableCell>

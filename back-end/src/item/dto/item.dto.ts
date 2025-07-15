@@ -26,9 +26,6 @@ export class CreateItemDto {
     @MaxLength(100)
     imei?: string;
 
-    @IsEnum(['It_Assets', 'Non_It_Assets'], { message: 'item_type must be either It_Assets or Non_It_Assets' })
-    item_type: 'It_Assets' | 'Non_It_Assets'
-
     @IsOptional()
     @IsBoolean()
     is_available?: boolean; // Will default to true in schema/service

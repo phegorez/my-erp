@@ -46,7 +46,6 @@ export default function DashboardPage() {
     { href: "/users", label: "User Management", roles: ['super_admin', 'admin'] }, // Placeholder for user management
     { href: "/requests/my-requests", label: "View My Requests", roles: [] }, // Accessible to all authenticated
     { href: "/profile", label: "My Profile", roles: [] },
-    { href: "/items", label: "Manage Items", roles: ['admin', 'super_admin', 'pic'] },
     { href: "/categories", label: "Manage Categories", roles: ['admin', 'super_admin'] },
     { href: "/requests/approvals", label: "Approve Requests", roles: ['manager', 'pic', 'admin', 'super_admin'] },
     { href: "/my-categories", label: "My Category", roles: ['pic'] },

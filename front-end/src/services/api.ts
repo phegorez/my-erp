@@ -1,4 +1,4 @@
-import { AddNewUser, EditedUserData, User } from '@/types';
+import { AddNewUser, EditedItem, EditedUserData, Item, newItem, User } from '@/types';
 import axios from 'axios';
 import { ca } from 'date-fns/locale';
 import { use } from 'react';
@@ -332,7 +332,6 @@ export const fetchUsersByRole = async (role: string) => {
  */
 export const fetchAllItems = async () => {
   try {
-    const token = localStorage.getItem('authToken'); // Example token retrieval
     const response = await apiClient.get('/items', {
       headers: {
         // Authorization: `Bearer ${token}`,
@@ -374,14 +373,9 @@ export const fetchItemById = async (itemId: string) => {
  * @param itemData - The data for the new item.
  * @returns The created item data.
  */
-export const createItem = async (itemData: any) => {
+export const addNewItem = async (newItemData: newItem) => {
   try {
-    const token = localStorage.getItem('authToken');
-    const response = await apiClient.post('/items', itemData, {
-      headers: {
-        // Authorization: `Bearer ${token}`,
-      },
-    });
+    const response = await apiClient.post('/items', newItemData);
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response) {
@@ -397,14 +391,9 @@ export const createItem = async (itemData: any) => {
  * @param itemData - The new data for the item.
  * @returns The updated item data.
  */
-export const updateItem = async (itemId: string, itemData: any) => {
+export const updateItem = async (itemId: string, itemData: EditedItem) => {
   try {
-    const token = localStorage.getItem('authToken');
-    const response = await apiClient.put(`/items/${itemId}`, itemData, { // Or PATCH if partial updates are allowed
-      headers: {
-        // Authorization: `Bearer ${token}`,
-      },
-    });
+    const response = await apiClient.patch(`/items/${itemId}`, itemData);
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response) {
@@ -421,12 +410,7 @@ export const updateItem = async (itemId: string, itemData: any) => {
  */
 export const deleteItem = async (itemId: string) => {
   try {
-    const token = localStorage.getItem('authToken');
-    const response = await apiClient.delete(`/items/${itemId}`, {
-      headers: {
-        // Authorization: `Bearer ${token}`,
-      },
-    });
+    const response = await apiClient.delete(`/items/${itemId}`);
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response) {

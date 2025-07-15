@@ -10,14 +10,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useCategory } from "@/stores/categoryStore"
 import { useUserStore } from "@/stores/userStore"
+import { AddNewCategory, ItemType } from "@/types"
 
 interface CategoryCreateFormProps {
     onSuccess: () => void
 }
 
 export function CategoryCreateForm({ onSuccess }: CategoryCreateFormProps) {
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<AddNewCategory>({
         category_name: "",
+        item_type: "" as ItemType, // Default to empty string, will be set by user
         assigned_pic: "",
     })
     const [loading, setLoading] = useState(false)
@@ -39,7 +41,7 @@ export function CategoryCreateForm({ onSuccess }: CategoryCreateFormProps) {
             setLoading(true)
             console.log("Creating category:", formData)
             const handleAdd = await addNewCategory(formData)
-            if(handleAdd) {
+            if (handleAdd) {
                 await fetchAllCategories()
                 setLoading(false)
                 onSuccess()
@@ -76,6 +78,23 @@ export function CategoryCreateForm({ onSuccess }: CategoryCreateFormProps) {
                             placeholder="e.g., IT Equipment, Office Furniture"
                             required
                         />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="item_type">Select Item Type</Label>
+                        <Select value={formData.item_type} onValueChange={(value) => handleInputChange("item_type", value)}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a user to assign as PIC" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value={"It_Assets"}>
+                                    <span className="text-sm text-muted-foreground">It Assets</span>
+                                </SelectItem>
+                                <SelectItem value={"Non_It_Assets"}>
+                                    <span className="text-sm text-muted-foreground">Non It_Assets</span>
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
 
                     <div className="space-y-2">

@@ -120,6 +120,7 @@ export interface formUserEdit {
 export interface Category {
     category_id: string
     category_name: string
+    item_type: ItemType
     created_at: string
     updated_at: string
     pic?: {
@@ -152,7 +153,37 @@ export interface Pic {
 
 export interface AddNewCategory {
     category_name: string;
+    item_type: ItemType;
     assigned_pic: string;
+}
+
+// item
+
+export enum ItemType {
+    It_Assets = 'It_Assets',
+    Non_It_Assets = 'Non_It_Assets'
+}
+
+export interface Item {
+    item_id: string
+    item_name: string
+    description?: string
+    category_id: string
+    item_type: string
+    serial_number?: string
+    imei?: string
+    created_at: string
+    updated_at: string
+    is_available: boolean
+}
+
+export interface newItem {
+    item_name: string
+    description?: string
+    is_available: boolean
+    serial_number?: string
+    imei?: string
+    category_id: string
 }
 
 export interface MyCategory {
@@ -163,12 +194,24 @@ export interface MyCategory {
     _count: {
         items: number
     }
-    items: {
-        item_id: string
-        item_name: string
-        item_type: string
-        is_available: boolean
-        serial_number?: string
-        imei?: string
-    }[]
+    items: Item[]
+}
+
+export interface CategoryWithItems {
+    category_id: string
+    category_name: string
+    items: Item[]
+    _count: {
+        items: number
+    }
+}
+
+export interface EditedItem {
+    item_name?: string
+    description?: string
+    category_id?: string
+    item_type?: ItemType
+    serial_number?: string
+    imei?: string
+    is_available?: boolean
 }

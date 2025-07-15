@@ -72,6 +72,7 @@ export class CategoryService {
         const newCategory = await tx.category.create({
           data: {
             category_name,
+            item_type: dto.item_type, // Assuming item_type is part of CreateCategoryDto
             pic: {
               connect: {
                 user_id: existingPic.user_id
@@ -158,8 +159,6 @@ export class CategoryService {
     }
     throw new NotAcceptableException(`You are not allowed to edit this category`);
   }
-
-
 
   async remove(category_id: string): Promise<string | { message: string; ok: boolean }> {
     try {
@@ -258,6 +257,7 @@ export class CategoryService {
           select: {
             category_id: true,
             category_name: true,
+            item_type: true,
             created_at: true,
             updated_at: true,
             picId: true,
@@ -270,10 +270,12 @@ export class CategoryService {
               select: {
                 item_id: true,
                 item_name: true,
-                item_type: true,
+                description: true,
                 is_available: true,
                 serial_number: true,
                 imei: true,
+                created_at: true,
+                updated_at: true,
               },
             }
           }

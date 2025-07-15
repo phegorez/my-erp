@@ -15,16 +15,6 @@ import { useCategory } from "@/stores/categoryStore"
 import { useAuth } from "@/contexts/AuthContext"
 import { MyCategory } from "@/types"
 
-
-interface PicInfo {
-    user_id: string
-    user: {
-        first_name: string
-        last_name: string
-        email_address: string
-    }
-}
-
 export default function MyCategoriesPage() {
     const [searchQuery, setSearchQuery] = useState("")
     const [selectedCategory, setSelectedCategory] = useState<MyCategory | null>(null)
@@ -36,22 +26,12 @@ export default function MyCategoriesPage() {
     const { getMyCategory, myCategories } = useCategory()
     const { user } = useAuth()
 
-
-    // Mock data - replace with actual API calls
     useEffect(() => {
-        getMyCategory()
-        const mockPicInfo: PicInfo = {
-            user_id: "pic1",
-            user: {
-                first_name: "John",
-                last_name: "Smith",
-                email_address: "john.smith@company.com",
-            },
-        }
-
-        setTimeout(() => {
+        const fetchCategories = async () => {
+            await getMyCategory()
             setLoading(false)
-        }, 1000)
+        }
+        fetchCategories()
     }, [])
 
     const filteredCategories = myCategories.filter((category) => {
@@ -91,6 +71,7 @@ export default function MyCategoriesPage() {
             </div>
         )
     }
+
 
     return (
         <div className="container mx-auto py-6 space-y-6">
@@ -308,7 +289,11 @@ export default function MyCategoriesPage() {
             {/* Dialogs */}
             <MyCategoryEditDialog category={selectedCategory} open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen} />
 
-            <CategoryItemsDialog category={selectedCategory} open={isItemsDialogOpen} onOpenChange={setIsItemsDialogOpen} />
+            <CategoryItemsDialog
+                categoryId={selectedCategory?.category_id || null}
+                open={isItemsDialogOpen}
+                onOpenChange={setIsItemsDialogOpen}
+            />
 
             <AddItemToCategoryDialog
                 category={selectedCategory}
@@ -317,4 +302,5 @@ export default function MyCategoriesPage() {
             />
         </div>
     )
+
 }

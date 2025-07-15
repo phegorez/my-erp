@@ -3,7 +3,7 @@ import { AddNewCategory, Category, MyCategory, Pic } from '@/types'
 import { AxiosError } from 'axios';
 import { create } from 'zustand'
 
-interface UserState {
+interface CategoryState {
     categories: Category[];
     myCategories: MyCategory[];
     pics: Pic[];
@@ -17,11 +17,12 @@ interface UserState {
     fetchAllPics: () => Promise<void>
     getMyCategory: () => Promise<void>;
     unAssignPic: (picId: string) => Promise<void>;
+    refreshMyCategories: () => Promise<void>
 }
 
 const CACHE_EXPIRATION_TIME = 60 * 60 * 1000;
 
-export const useCategory = create<UserState>((set) => ({
+export const useCategory = create<CategoryState>((set) => ({
     categories: [],
     myCategories: [],
     pics: [],
@@ -165,5 +166,10 @@ export const useCategory = create<UserState>((set) => ({
             }
             set({ error: errorMessage, isLoading: false });
         }
-    }
+    },
+    refreshMyCategories: async () => {
+        // Re-fetch ข้อมูลใหม่
+        const current = useCategory.getState();
+        await current.getMyCategory();
+    },
 }));

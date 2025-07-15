@@ -14,7 +14,7 @@ export class ItemController {
 
   @UseGuards(JwtAuthGuard) // Protected
   @Post()
-  create(@GetUser() user: {sub: string, roles: string[]}, @Body() dto: CreateItemDto): Promise<Item> {
+  create(@GetUser() user: { sub: string, roles: string[] }, @Body() dto: CreateItemDto): Promise<Item> {
     const { sub, roles } = user;
     if (roles.includes('pic')) {
       return this.itemService.create(sub, dto);
@@ -23,7 +23,7 @@ export class ItemController {
   }
 
   @Get()
-  findAll(): Promise<Item[]> {
+  findAll(): Promise<{ ok: boolean; data: Item[] }> {
     return this.itemService.findAll();
   }
 
@@ -34,8 +34,8 @@ export class ItemController {
 
   @UseGuards(JwtAuthGuard) // Protected
   @Patch(':id')
-  update(@GetUser('roles') roles: string[], @Param('id') id: string, @Body() dto: UpdateItemDto): Promise<Item> {
-    if (roles.includes('super_admin') || roles.includes('admin')) {
+  update(@GetUser('roles') roles: string[], @Param('id') id: string, @Body() dto: UpdateItemDto): Promise<{ ok: boolean; data: Item }> {
+    if (roles.includes('pic')) {
       return this.itemService.update(id, dto);
     }
     throw new ForbiddenException('You are not allowed to update a item')
@@ -43,11 +43,10 @@ export class ItemController {
 
   @UseGuards(JwtAuthGuard) // Protected
   @Delete(':id')
-  remove(@GetUser('roles') roles: string[], @Param('id') id: string): Promise<Item> {
-    if (roles.includes('super_admin') || roles.includes('admin')) {
-      return this.itemService.remove(id);
+  remove(@GetUser() user: { sub: string; roles: string[] }, @Param('id') id: string): Promise<{ ok: boolean; data: Item }> {
+    if (user.roles.includes('pic')) {
+      return this.itemService.remove(id, user.sub);
     }
     throw new ForbiddenException('You are not allowed to delete a item')
-
   }
 }

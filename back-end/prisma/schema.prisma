@@ -158,6 +158,7 @@ model Category {
   category_name String @unique
 
   items Item[]
+  item_type ItemType
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -188,7 +189,9 @@ model Item {
   category_id   String
   serial_number String?
   imei          String?
-  item_type     ItemType
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
   is_available  Boolean  @default(true)
 
   category     Category      @relation(fields: [category_id], references: [category_id])
